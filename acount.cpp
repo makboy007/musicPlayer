@@ -1,5 +1,5 @@
 #include "acount.h"
-
+#include "idgenerator.h"
 Acount:: Acount(string Fullname,string Username,bool Role,string Password,string Biography)
 {
     this->FullName=Fullname;
@@ -7,5 +7,5 @@ Acount:: Acount(string Fullname,string Username,bool Role,string Password,string
     this->Biography=Biography;
     this->Role=Role;
     this->Password=Password;
-    this->ID=0;
+    this->ID=IdGenerator::generateAccountId();
 }
