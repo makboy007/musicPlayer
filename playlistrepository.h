@@ -8,10 +8,20 @@ class PlaylistRepository : public AbstractRepository<Playlist>
 {
 private:
     vector<Playlist>playlists;
+
+    PlaylistRepository(){};
+    PlaylistRepository(const PlaylistRepository&) = delete;
 public:
-int  save(const Playlist& data) override;
+    static PlaylistRepository& getInstance()
+    {
+        static PlaylistRepository instance;
+        return instance;
+    }
+
+    int save(const Playlist& data) override;
     bool remove(int id) override;
     optional<Playlist> search(int id) const override;
+
 };
 
 #endif // PLAYLISTREPOSITORY_H

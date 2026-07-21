@@ -11,6 +11,11 @@ public:
     int  save(const Song& data) override;
     bool remove(int id) override;
     optional<Song> search(int id) const override;
+    vector<Song> singleSongs(int artistID)const;
+    vector <Song> getByAlbum(int albumID)const;
+    vector<Song> getByArtist(int artistID)const;
+    vector<Song> getByPlaylist(int playlistID)const;
+    vector<Song> getByLikedSongs(int listenerID);
 };
 
 #endif // SONGREPOSITORY_H

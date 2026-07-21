@@ -2,6 +2,7 @@
 #define PLAYLIST_H
 #include <iostream>
 #include <string>
+#include<vector>
 using namespace std;
 class Playlist
 {
@@ -9,6 +10,7 @@ private:
     string name;
     int ListenerID;
     int ListID;
+    vector<int> songIDs;
 public:
     Playlist(string name,int ListenerID);
 
@@ -20,6 +22,10 @@ public:
 
     int getListID() const { return ListID; }
     void setListID(int listID) { ListID = listID; }
+
+    void addSong(int songID) { songIDs.push_back(songID); }
+    void removeSong(int songID);
+    const vector<int>& getSongIDs() const { return songIDs; }
 };
 
 #endif // PLAYLIST_H
