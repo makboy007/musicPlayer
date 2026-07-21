@@ -20,13 +20,13 @@ public:
     string getFullName() { return FullName; }
     void setFullName(string value) { FullName = value; }
 
-    string getUserName() { return UserName; }
+    string getUserName() const { return UserName; }
     void setUserName(string value) { UserName = value; }
 
     string getBiography() { return Biography; }
     void setBiography(string value) { Biography = value; }
 
-    int getID() { return ID; }
+    int getID()const { return ID; }
     void setID(int value) { ID = value; }
 
     bool getRole() { return Role; }

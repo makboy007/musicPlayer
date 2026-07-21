@@ -8,9 +8,15 @@ CONFIG += c++17
 
 SOURCES += \
     abstractrepository.cpp \
+    accountrepository.cpp \
     acount.cpp \
     album.cpp \
+    albumrepository.cpp \
+    artist.cpp \
+    artistrepository.cpp \
     idgenerator.cpp \
+    listener.cpp \
+    listenerrepository.cpp \
     main.cpp \
     mainwindow.cpp \
     playlist.cpp \
@@ -20,9 +26,15 @@ SOURCES += \
 
 HEADERS += \
     abstractrepository.h \
+    accountrepository.h \
     acount.h \
     album.h \
+    albumrepository.h \
+    artist.h \
+    artistrepository.h \
     idgenerator.h \
+    listener.h \
+    listenerrepository.h \
     mainwindow.h \
     playlist.h \
     playlistrepository.h \
