@@ -1,5 +1,5 @@
 #include "playlistrepository.h"
-
+#include "songrepository.h"
 int PlaylistRepository:: save(const Playlist& data)
 {
     for(Playlist& item:playlists)
@@ -43,6 +43,52 @@ optional<Playlist> PlaylistRepository:: search(int id) const
     return nullopt;
 }
 
+
+void PlaylistRepository::insertSong(int playlistID, int songID)
+{
+    auto song = SongRepository::getInstance().search(songID);
+    if (!song.has_value())
+    {
+        return;
+    }
+
+
+    for (auto& pl : playlists)
+    {
+        if (pl.getListID() == playlistID)
+        {
+            pl.addSong(songID);
+            return;
+        }
+    }
+}
+
+void PlaylistRepository::removeSong(int playlistID, int songID)
+{
+    for (auto& pl : playlists)
+    {
+        if (pl.getListID() == playlistID)
+        {
+            pl.removeSong(songID);
+            return;
+        }
+    }
+}
+
+vector<Playlist> PlaylistRepository::Playlists(int listenerID) const
+{
+    std::vector<Playlist> result;
+
+    for (const auto& pl : playlists)
+    {
+        if (pl.getListenerID() == listenerID)
+        {
+            result.push_back(pl);
+        }
+    }
+
+    return result;
+}
 
 
 

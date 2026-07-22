@@ -22,6 +22,9 @@ public:
     bool remove(int id) override;
     optional<Playlist> search(int id) const override;
 
+    void insertSong(int playlistID,int songID);
+    void removeSong(int playlistID,int songID);
+    vector<Playlist> Playlists(int listenerID) const;
 };
 
 #endif // PLAYLISTREPOSITORY_H
