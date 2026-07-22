@@ -23,7 +23,7 @@ public:
         static AlbumRepository instance;
         return instance;
     }
-
+    const vector<Album>& getAll() const { return albums; }
 };
 
 #endif // ALBUMREPOSITORY_H

@@ -13,6 +13,7 @@ private:
     vector<int> songIDs;
 public:
     Playlist(string name,int ListenerID);
+    Playlist(string name,int ListenerID,int listID);
 
     string getName() const { return name; }
     void setName(string name) { this->name = name; }
@@ -26,6 +27,8 @@ public:
     void addSong(int songID) { songIDs.push_back(songID); }
     void removeSong(int songID);
     const vector<int>& getSongIDs() const { return songIDs; }
+
+    void setSongIDs(const vector<int>& ids);
 };
 
 #endif // PLAYLIST_H

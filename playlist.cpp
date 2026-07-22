@@ -7,6 +7,14 @@ Playlist::Playlist(string name,int ListenerID)
     this->ListID=IdGenerator::generatePlaylistId();
 }
 
+Playlist::Playlist(string name,int ListenerID,int listID)
+{
+    this->name=name;
+    this->ListenerID=ListenerID;
+    this->ListID=listID;
+}
+
+
 void Playlist:: removeSong(int songID) {
     for (auto it = songIDs.begin(); it != songIDs.end(); ++it) {
         if (*it == songID) {
@@ -14,4 +22,9 @@ void Playlist:: removeSong(int songID) {
             break;
         }
     }
+}
+
+void Playlist::setSongIDs(const vector<int>& ids)
+{
+    this->songIDs = ids;
 }

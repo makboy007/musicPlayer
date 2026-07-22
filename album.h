@@ -11,6 +11,7 @@ private:
     int AlbumID;
 public:
     Album(string name,int ArtistID);
+    Album(string name,int ArtistID,int albumID);
 
     string getName() const { return name; }
     void setName(string name) { this->name = name; }

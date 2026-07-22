@@ -25,6 +25,8 @@ public:
     void insertSong(int playlistID,int songID);
     void removeSong(int playlistID,int songID);
     vector<Playlist> Playlists(int listenerID) const;
+
+    const vector<Playlist>& getAll() const { return playlists; }
 };
 
 #endif // PLAYLISTREPOSITORY_H

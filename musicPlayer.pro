@@ -14,6 +14,7 @@ SOURCES += \
     albumrepository.cpp \
     artist.cpp \
     artistrepository.cpp \
+    datamanager.cpp \
     idgenerator.cpp \
     listener.cpp \
     listenerrepository.cpp \
@@ -32,6 +33,7 @@ HEADERS += \
     albumrepository.h \
     artist.h \
     artistrepository.h \
+    datamanager.h \
     idgenerator.h \
     listener.h \
     listenerrepository.h \

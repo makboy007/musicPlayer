@@ -4,13 +4,13 @@
 class IdGenerator
 {
 private:
-    IdGenerator() = delete; // prevent creating objects
-
+    IdGenerator() = delete;
+public:
     static int songIdCounter;
     static int playlistIdCounter;
     static int albumIdCounter;
     static int accountIdCounter;
-public:
+
     static int generateSongId();
     static int generatePlaylistId();
     static int generateAlbumId();

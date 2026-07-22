@@ -1,5 +1,11 @@
 #include "listener.h"
 
+Listener::Listener(string Fullname, string Username, bool Role, string Password, string Biography, int ID)
+    : Acount(Fullname, Username, Role, Password, Biography, ID)
+{
+
+}
+
 void Listener:: addLike(int ID)
 {
     if(!checkLike(ID))
@@ -30,4 +36,9 @@ bool Listener::checkLike(int ID)const
         }
     }
     return 0;
+}
+
+void Listener::setLikedSongs(const vector<int>& songs)
+{
+    likedSongs = songs;
 }

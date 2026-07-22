@@ -9,3 +9,13 @@ Acount:: Acount(string Fullname,string Username,bool Role,string Password,string
     this->Password=Password;
     this->ID=IdGenerator::generateAccountId();
 }
+
+Acount::Acount(string Fullname,string Username,bool Role,string Password,string Biography,int ID)
+{
+    this->FullName=Fullname;
+    this->UserName=Username;
+    this->Biography=Biography;
+    this->Role=Role;
+    this->Password=Password;
+    this->ID=ID;
+}

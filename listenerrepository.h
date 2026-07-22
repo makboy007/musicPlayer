@@ -22,6 +22,8 @@ public:
         static ListenerRepository instance;
         return instance;
     }
+
+    const vector<Listener>& getAll() const { return listeners; }
 };
 
 #endif // LISTENERREPOSITORY_H

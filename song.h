@@ -14,6 +14,7 @@ private:
     int albumID;
 public:
     Song(string name,int releaseYear, string genre, int artistId, int albumID);
+    Song(string name,int releaseYear, string genre, int artistId, int albumID,int songID);
 
     string getName() const { return name; }
     void setName(string name) { this->name = name; }

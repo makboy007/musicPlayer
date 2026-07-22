@@ -24,6 +24,8 @@ public:
         static SongRepository instance;
         return instance;
     }
+
+    const vector<Song>& getAll() const { return songs; }
 };
 
 #endif // SONGREPOSITORY_H
