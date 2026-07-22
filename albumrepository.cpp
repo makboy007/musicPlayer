@@ -42,3 +42,30 @@ optional<Album> AlbumRepository:: search(int id) const
     }
     return nullopt;
 }
+
+
+vector<Album> AlbumRepository::Albums(int artistID) const
+{
+    std::vector<Album> result;
+
+    for (const auto& album : albums)
+    {
+        if (album.getArtistID() == artistID)
+        {
+            result.push_back(album);
+        }
+    }
+
+    return result;
+}
+
+
+
+
+
+
+
+
+
+
+
