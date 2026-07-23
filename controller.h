@@ -25,6 +25,8 @@ public:
 
 
     bool signUp(string fullName, string username, string password, string bio, bool isArtistRole);
+    bool login(string username, string password);
+    void logout();
 
 };
 
