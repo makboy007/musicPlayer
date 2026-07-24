@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include "Controller.h"
+
 #include <QMessageBox>
 #include <QApplication>
 
@@ -17,13 +19,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
 
-    // welcom page
     showWelcomePage();
 }
 
 MainWindow::~MainWindow() {}
 
-// --- صفحه اول (Welcome) ---
+// --- Welcome Page ---
 void MainWindow::createWelcomePage() {
     welcomePage = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(welcomePage);
@@ -53,23 +54,23 @@ void MainWindow::createWelcomePage() {
 
     connect(btnExit, &QPushButton::clicked, qApp, &QApplication::quit);
     connect(btnNext, &QPushButton::clicked, this, [this]() {
-        if(rbWelcomeLogin->isChecked()) showLoginPage();
-        else if(rbWelcomeSignUp->isChecked()) showSignUpPage();
-        else QMessageBox::warning(this, "Wait", "Please select an option.");
+        if (rbWelcomeLogin->isChecked())
+            showLoginPage();
+        else if (rbWelcomeSignUp->isChecked())
+            showSignUpPage();
+        else
+            QMessageBox::warning(this, "Wait", "Please select an option.");
     });
 }
 
-// ---  صفحه لاگین ---
+// --- Login Page ---
 void MainWindow::createLoginPage() {
     loginPage = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(loginPage);
 
-    QLabel *lblHead = new QLabel("you are:", loginPage);
-    rbLoginListener = new QRadioButton("listener", loginPage);
-    rbLoginArtist = new QRadioButton("artist", loginPage);
-
     txtLoginUser = new QLineEdit(loginPage);
     txtLoginUser->setPlaceholderText("user name:");
+
     txtLoginPass = new QLineEdit(loginPage);
     txtLoginPass->setPlaceholderText("password:");
     txtLoginPass->setEchoMode(QLineEdit::Password);
@@ -78,14 +79,12 @@ void MainWindow::createLoginPage() {
     QPushButton *btnExit = new QPushButton("Exit", loginPage);
     QPushButton *btnBack = new QPushButton("Back", loginPage);
     QPushButton *btnLogin = new QPushButton("Log in", loginPage);
+
     btnLayout->addWidget(btnExit);
     btnLayout->addWidget(btnBack);
     btnLayout->addStretch();
     btnLayout->addWidget(btnLogin);
 
-    layout->addWidget(lblHead);
-    layout->addWidget(rbLoginListener);
-    layout->addWidget(rbLoginArtist);
     layout->addWidget(new QLabel("user name:"));
     layout->addWidget(txtLoginUser);
     layout->addWidget(new QLabel("password:"));
@@ -98,7 +97,7 @@ void MainWindow::createLoginPage() {
     connect(btnLogin, &QPushButton::clicked, this, &MainWindow::handleLogin);
 }
 
-// ---  صفحه ساین‌آپ ---
+// --- Sign Up Page ---
 void MainWindow::createSignUpPage() {
     signUpPage = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(signUpPage);
@@ -117,6 +116,7 @@ void MainWindow::createSignUpPage() {
     QPushButton *btnExit = new QPushButton("Exit", signUpPage);
     QPushButton *btnBack = new QPushButton("Back", signUpPage);
     QPushButton *btnSign = new QPushButton("Sign up", signUpPage);
+
     btnLayout->addWidget(btnExit);
     btnLayout->addWidget(btnBack);
     btnLayout->addStretch();
@@ -141,16 +141,67 @@ void MainWindow::createSignUpPage() {
     connect(btnSign, &QPushButton::clicked, this, &MainWindow::handleSignUp);
 }
 
-// ------
-void MainWindow::showWelcomePage() { stackedWidget->setCurrentWidget(welcomePage); }
-void MainWindow::showLoginPage() { stackedWidget->setCurrentWidget(loginPage); }
-void MainWindow::showSignUpPage() { stackedWidget->setCurrentWidget(signUpPage); }
+// --- Navigation ---
+void MainWindow::showWelcomePage() {
+    stackedWidget->setCurrentWidget(welcomePage);
+}
 
+void MainWindow::showLoginPage() {
+    stackedWidget->setCurrentWidget(loginPage);
+}
+
+void MainWindow::showSignUpPage() {
+    stackedWidget->setCurrentWidget(signUpPage);
+}
+
+// --- Handlers ---
 void MainWindow::handleLogin() {
+    QString user = txtLoginUser->text();
+    QString pass = txtLoginPass->text();
 
-    QMessageBox::information(this, "Login", "Trying to login as " + txtLoginUser->text());
+    if (user.isEmpty() || pass.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please fill all fields.");
+        return;
+    }
+
+    bool success = Controller::getInstance().login(user.toStdString(), pass.toStdString());
+
+    if (success) {
+        QMessageBox::information(this, "Success", "Welcome back!");
+    } else {
+        QMessageBox::critical(this, "Login Failed", "Invalid username or password.");
+    }
 }
 
 void MainWindow::handleSignUp() {
-    QMessageBox::information(this, "Sign Up", "Creating account for " + txtSignUser->text());
+    QString fullName = txtSignFull->text();
+    QString user = txtSignUser->text();
+    QString pass = txtSignPass->text();
+    QString bio = txtSignBio->text();
+    bool isArtist = rbSignArtist->isChecked();
+
+    if (fullName.isEmpty() || user.isEmpty() || pass.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please fill required fields.");
+        return;
+    }
+
+    if (!rbSignArtist->isChecked() && !rbSignListener->isChecked()) {
+        QMessageBox::warning(this, "Error", "Please select a role.");
+        return;
+    }
+
+    bool success = Controller::getInstance().signUp(
+        fullName.toStdString(),
+        user.toStdString(),
+        pass.toStdString(),
+        bio.toStdString(),
+        isArtist
+        );
+
+    if (success) {
+        QMessageBox::information(this, "Success", "Account created successfully! Please login.");
+        showLoginPage();
+    } else {
+        QMessageBox::critical(this, "Sign Up Failed", "Username already exists or an error occurred.");
+    }
 }

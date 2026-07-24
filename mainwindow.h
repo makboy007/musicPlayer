@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QButtonGroup>
 
+#include "Controller.h"
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -39,7 +40,7 @@ private:
     // UI Elements - Login Page
     QWidget *loginPage;
     QLineEdit *txtLoginUser, *txtLoginPass;
-    QRadioButton *rbLoginListener, *rbLoginArtist;
+
 
     // UI Elements - Sign Up Page
     QWidget *signUpPage;
