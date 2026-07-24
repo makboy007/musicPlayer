@@ -16,12 +16,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     createSignUpPage();
     createArtistDashboardPage();
     createArtistProfilePage();
+    createCollectionPage();
 
     stackedWidget->addWidget(welcomePage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
     stackedWidget->addWidget(artistDashboardPage);
     stackedWidget->addWidget(artistProfilePage);
+    stackedWidget->addWidget(collectionPage);
 
     showWelcomePage();
 }
@@ -153,7 +155,6 @@ void MainWindow::createArtistDashboardPage() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // Top
     QHBoxLayout *topLayout = new QHBoxLayout();
 
     btnArtistName = new QPushButton("Eminem", artistDashboardPage);
@@ -171,7 +172,6 @@ void MainWindow::createArtistDashboardPage() {
     topLayout->addWidget(btnArtistName);
     topLayout->addStretch();
 
-    // Album List
     QVBoxLayout *albumsLayout = new QVBoxLayout();
     albumsLayout->setSpacing(10);
 
@@ -200,7 +200,6 @@ void MainWindow::createArtistDashboardPage() {
         albumsLayout->addWidget(btn);
     }
 
-    // Bottom
     QHBoxLayout *bottomLayout = new QHBoxLayout();
     bottomLayout->addStretch();
 
@@ -225,6 +224,11 @@ void MainWindow::createArtistDashboardPage() {
 
     connect(btnArtistName, &QPushButton::clicked, this, &MainWindow::showArtistProfilePage);
     connect(btnLogoutArtist, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
+
+    connect(btnSingles, &QPushButton::clicked, this, &MainWindow::handleSinglesClicked);
+    connect(btnAlbum1, &QPushButton::clicked, this, &MainWindow::handleAlbum1Clicked);
+    connect(btnAlbum2, &QPushButton::clicked, this, &MainWindow::handleAlbum2Clicked);
+    connect(btnAlbum3, &QPushButton::clicked, this, &MainWindow::handleAlbum3Clicked);
 }
 
 // --- Artist Profile Page ---
@@ -282,6 +286,43 @@ void MainWindow::createArtistProfilePage() {
     connect(btnDeleteProfile, &QPushButton::clicked, this, &MainWindow::handleDeleteProfile);
 }
 
+// --- Collection Page ---
+void MainWindow::createCollectionPage() {
+    collectionPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(collectionPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    lblCollectionTitle = new QLabel("Singles", collectionPage);
+    lblCollectionTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
+    lblCollectionTitle->setAlignment(Qt::AlignLeft);
+
+    songsContainer = new QWidget(collectionPage);
+    songsLayout = new QVBoxLayout(songsContainer);
+    songsLayout->setSpacing(10);
+    songsLayout->setContentsMargins(0, 0, 0, 0);
+
+    songsScrollArea = new QScrollArea(collectionPage);
+    songsScrollArea->setWidgetResizable(true);
+    songsScrollArea->setWidget(songsContainer);
+    songsScrollArea->setFrameShape(QFrame::NoFrame);
+
+    btnBackFromCollection = new QPushButton("Back", collectionPage);
+    btnBackFromCollection->setMinimumHeight(40);
+    btnBackFromCollection->setMinimumWidth(100);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addWidget(btnBackFromCollection);
+    bottomLayout->addStretch();
+
+    mainLayout->addWidget(lblCollectionTitle);
+    mainLayout->addWidget(songsScrollArea);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromCollection, &QPushButton::clicked, this, &MainWindow::showArtistDashboardPage);
+}
+
 // --- Navigation ---
 void MainWindow::showWelcomePage() {
     stackedWidget->setCurrentWidget(welcomePage);
@@ -301,6 +342,89 @@ void MainWindow::showArtistDashboardPage() {
 
 void MainWindow::showArtistProfilePage() {
     stackedWidget->setCurrentWidget(artistProfilePage);
+}
+
+void MainWindow::showCollectionPage() {
+    stackedWidget->setCurrentWidget(collectionPage);
+}
+
+// --- Collection Helpers ---
+void MainWindow::clearSongsList() {
+    QLayoutItem *item;
+    while ((item = songsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+            delete item->widget();
+        }
+        delete item;
+    }
+}
+
+QPushButton* MainWindow::createSongItemButton(const QString &songTitle) {
+    QPushButton *btnSong = new QPushButton(songTitle, collectionPage);
+    btnSong->setMinimumHeight(45);
+    btnSong->setStyleSheet(
+        "QPushButton {"
+        "text-align: left;"
+        "padding-left: 12px;"
+        "font-size: 14px;"
+        "border: 1px solid gray;"
+        "border-radius: 8px;"
+        "background-color: white;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: #f2f2f2;"
+        "}"
+        );
+    return btnSong;
+}
+
+void MainWindow::loadCollectionPage(const QString &title, const QStringList &songs) {
+    lblCollectionTitle->setText(title);
+    clearSongsList();
+
+    for (const QString &song : songs) {
+        songsLayout->addWidget(createSongItemButton(song));
+    }
+
+    songsLayout->addStretch();
+    showCollectionPage();
+}
+
+// --- Dashboard Item Handlers ---
+void MainWindow::handleSinglesClicked() {
+    QStringList songs;
+    songs << "Lose Yourself"
+          << "Mockingbird"
+          << "Without Me";
+
+    loadCollectionPage("Singles", songs);
+}
+
+void MainWindow::handleAlbum1Clicked() {
+    QStringList songs;
+    songs << "Cold Wind Blows"
+          << "Talkin 2 Myself"
+          << "Not Afraid";
+
+    loadCollectionPage("Recovery", songs);
+}
+
+void MainWindow::handleAlbum2Clicked() {
+    QStringList songs;
+    songs << "3 a.m."
+          << "Beautiful"
+          << "Crack a Bottle";
+
+    loadCollectionPage("Relapse", songs);
+}
+
+void MainWindow::handleAlbum3Clicked() {
+    QStringList songs;
+    songs << "White America"
+          << "Business"
+          << "Cleanin' Out My Closet";
+
+    loadCollectionPage("The Eminem Show", songs);
 }
 
 // --- Handlers ---
@@ -370,3 +494,4 @@ void MainWindow::handleDeleteProfile() {
         showWelcomePage();
     }
 }
+

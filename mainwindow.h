@@ -11,6 +11,8 @@
 #include <QHBoxLayout>
 #include <QButtonGroup>
 #include <QWidget>
+#include <QScrollArea>
+#include <QStringList>
 
 #include "Controller.h"
 
@@ -28,10 +30,16 @@ private slots:
     void showWelcomePage();
     void showArtistDashboardPage();
     void showArtistProfilePage();
+    void showCollectionPage();
 
     void handleLogin();
     void handleSignUp();
     void handleDeleteProfile();
+
+    void handleSinglesClicked();
+    void handleAlbum1Clicked();
+    void handleAlbum2Clicked();
+    void handleAlbum3Clicked();
 
 private:
     QStackedWidget *stackedWidget;
@@ -75,12 +83,25 @@ private:
     QPushButton *btnDeleteProfile;
     QPushButton *btnBackToDashboard;
 
+    // Collection Page (Singles / Album Songs)
+    QWidget *collectionPage;
+    QLabel *lblCollectionTitle;
+    QWidget *songsContainer;
+    QVBoxLayout *songsLayout;
+    QScrollArea *songsScrollArea;
+    QPushButton *btnBackFromCollection;
+
     // Helper functions
     void createWelcomePage();
     void createLoginPage();
     void createSignUpPage();
     void createArtistDashboardPage();
     void createArtistProfilePage();
+    void createCollectionPage();
+
+    void loadCollectionPage(const QString &title, const QStringList &songs);
+    void clearSongsList();
+    QPushButton* createSongItemButton(const QString &songTitle);
 };
 
 #endif // MAINWINDOW_H
