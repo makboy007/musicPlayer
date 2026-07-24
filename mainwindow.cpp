@@ -14,10 +14,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     createWelcomePage();
     createLoginPage();
     createSignUpPage();
+    createArtistDashboardPage();
+    createArtistProfilePage();
 
     stackedWidget->addWidget(welcomePage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
+    stackedWidget->addWidget(artistDashboardPage);
+    stackedWidget->addWidget(artistProfilePage);
 
     showWelcomePage();
 }
@@ -141,6 +145,143 @@ void MainWindow::createSignUpPage() {
     connect(btnSign, &QPushButton::clicked, this, &MainWindow::handleSignUp);
 }
 
+// --- Artist Dashboard Page ---
+void MainWindow::createArtistDashboardPage() {
+    artistDashboardPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(artistDashboardPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    // Top
+    QHBoxLayout *topLayout = new QHBoxLayout();
+
+    btnArtistName = new QPushButton("Eminem", artistDashboardPage);
+    btnArtistName->setCursor(Qt::PointingHandCursor);
+    btnArtistName->setStyleSheet(
+        "QPushButton {"
+        "border: none;"
+        "font-size: 16px;"
+        "font-weight: bold;"
+        "text-align: left;"
+        "padding: 0px;"
+        "}"
+        );
+
+    topLayout->addWidget(btnArtistName);
+    topLayout->addStretch();
+
+    // Album List
+    QVBoxLayout *albumsLayout = new QVBoxLayout();
+    albumsLayout->setSpacing(10);
+
+    btnSingles = new QPushButton("Singles", artistDashboardPage);
+    btnAlbum1 = new QPushButton("Recovery", artistDashboardPage);
+    btnAlbum2 = new QPushButton("Relapse", artistDashboardPage);
+    btnAlbum3 = new QPushButton("The Eminem Show", artistDashboardPage);
+
+    QList<QPushButton*> albumButtons = {btnSingles, btnAlbum1, btnAlbum2, btnAlbum3};
+
+    for (QPushButton *btn : albumButtons) {
+        btn->setMinimumHeight(45);
+        btn->setStyleSheet(
+            "QPushButton {"
+            "text-align: left;"
+            "padding-left: 12px;"
+            "font-size: 15px;"
+            "border: 1px solid gray;"
+            "border-radius: 8px;"
+            "background-color: white;"
+            "}"
+            "QPushButton:hover {"
+            "background-color: #f2f2f2;"
+            "}"
+            );
+        albumsLayout->addWidget(btn);
+    }
+
+    // Bottom
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addStretch();
+
+    btnAddSong = new QPushButton("Add Song", artistDashboardPage);
+    btnAddAlbum = new QPushButton("Add Album", artistDashboardPage);
+    btnLogoutArtist = new QPushButton("Logout", artistDashboardPage);
+
+    btnAddSong->setMinimumWidth(100);
+    btnAddAlbum->setMinimumWidth(100);
+    btnLogoutArtist->setMinimumWidth(100);
+
+    bottomLayout->addWidget(btnAddSong);
+    bottomLayout->addWidget(btnAddAlbum);
+    bottomLayout->addWidget(btnLogoutArtist);
+
+    bottomLayout->addStretch();
+
+    mainLayout->addLayout(topLayout);
+    mainLayout->addLayout(albumsLayout);
+    mainLayout->addStretch();
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnArtistName, &QPushButton::clicked, this, &MainWindow::showArtistProfilePage);
+    connect(btnLogoutArtist, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
+}
+
+// --- Artist Profile Page ---
+void MainWindow::createArtistProfilePage() {
+    artistProfilePage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(artistProfilePage);
+    mainLayout->setContentsMargins(30, 30, 30, 30);
+    mainLayout->setSpacing(15);
+
+    QLabel *lblTitle = new QLabel("Artist Profile", artistProfilePage);
+    lblTitle->setStyleSheet("font-size: 20px; font-weight: bold;");
+    lblTitle->setAlignment(Qt::AlignCenter);
+
+    QLabel *lblFullNameTitle = new QLabel("Full Name:", artistProfilePage);
+    lblProfileFullNameValue = new QLabel("Eminem", artistProfilePage);
+
+    QLabel *lblUsernameTitle = new QLabel("Username:", artistProfilePage);
+    lblProfileUsernameValue = new QLabel("eminem123", artistProfilePage);
+
+    QLabel *lblBioTitle = new QLabel("Biography:", artistProfilePage);
+    lblProfileBioValue = new QLabel("American rapper and songwriter.", artistProfilePage);
+    lblProfileBioValue->setWordWrap(true);
+
+    lblFullNameTitle->setStyleSheet("font-weight: bold;");
+    lblUsernameTitle->setStyleSheet("font-weight: bold;");
+    lblBioTitle->setStyleSheet("font-weight: bold;");
+
+    btnEditProfile = new QPushButton("Edit Profile", artistProfilePage);
+    btnDeleteProfile = new QPushButton("Delete Profile", artistProfilePage);
+    btnBackToDashboard = new QPushButton("Back", artistProfilePage);
+
+    btnEditProfile->setMinimumHeight(40);
+    btnDeleteProfile->setMinimumHeight(40);
+    btnBackToDashboard->setMinimumHeight(40);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addWidget(btnBackToDashboard);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(btnEditProfile);
+    bottomLayout->addWidget(btnDeleteProfile);
+
+    mainLayout->addWidget(lblTitle);
+    mainLayout->addSpacing(20);
+    mainLayout->addWidget(lblFullNameTitle);
+    mainLayout->addWidget(lblProfileFullNameValue);
+    mainLayout->addWidget(lblUsernameTitle);
+    mainLayout->addWidget(lblProfileUsernameValue);
+    mainLayout->addWidget(lblBioTitle);
+    mainLayout->addWidget(lblProfileBioValue);
+    mainLayout->addStretch();
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackToDashboard, &QPushButton::clicked, this, &MainWindow::showArtistDashboardPage);
+    connect(btnDeleteProfile, &QPushButton::clicked, this, &MainWindow::handleDeleteProfile);
+}
+
 // --- Navigation ---
 void MainWindow::showWelcomePage() {
     stackedWidget->setCurrentWidget(welcomePage);
@@ -152,6 +293,14 @@ void MainWindow::showLoginPage() {
 
 void MainWindow::showSignUpPage() {
     stackedWidget->setCurrentWidget(signUpPage);
+}
+
+void MainWindow::showArtistDashboardPage() {
+    stackedWidget->setCurrentWidget(artistDashboardPage);
+}
+
+void MainWindow::showArtistProfilePage() {
+    stackedWidget->setCurrentWidget(artistProfilePage);
 }
 
 // --- Handlers ---
@@ -168,6 +317,7 @@ void MainWindow::handleLogin() {
 
     if (success) {
         QMessageBox::information(this, "Success", "Welcome back!");
+        showArtistDashboardPage();
     } else {
         QMessageBox::critical(this, "Login Failed", "Invalid username or password.");
     }
@@ -203,5 +353,20 @@ void MainWindow::handleSignUp() {
         showLoginPage();
     } else {
         QMessageBox::critical(this, "Sign Up Failed", "Username already exists or an error occurred.");
+    }
+}
+
+void MainWindow::handleDeleteProfile() {
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(
+        this,
+        "Delete Profile",
+        "Are you sure you want to delete your profile?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+        QMessageBox::information(this, "Deleted", "Profile deleted successfully.");
+        showWelcomePage();
     }
 }

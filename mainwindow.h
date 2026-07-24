@@ -10,8 +10,10 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QButtonGroup>
+#include <QWidget>
 
 #include "Controller.h"
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -21,37 +23,66 @@ public:
     ~MainWindow();
 
 private slots:
-
     void showLoginPage();
     void showSignUpPage();
     void showWelcomePage();
-
+    void showArtistDashboardPage();
+    void showArtistProfilePage();
 
     void handleLogin();
     void handleSignUp();
+    void handleDeleteProfile();
 
 private:
     QStackedWidget *stackedWidget;
 
-    // UI Elements - Welcome Page
+    // Welcome Page
     QWidget *welcomePage;
-    QRadioButton *rbWelcomeLogin, *rbWelcomeSignUp;
+    QRadioButton *rbWelcomeLogin;
+    QRadioButton *rbWelcomeSignUp;
 
-    // UI Elements - Login Page
+    // Login Page
     QWidget *loginPage;
-    QLineEdit *txtLoginUser, *txtLoginPass;
+    QLineEdit *txtLoginUser;
+    QLineEdit *txtLoginPass;
 
-
-    // UI Elements - Sign Up Page
+    // Sign Up Page
     QWidget *signUpPage;
-    QLineEdit *txtSignFull, *txtSignUser, *txtSignPass, *txtSignBio;
-    QRadioButton *rbSignListener, *rbSignArtist;
+    QLineEdit *txtSignFull;
+    QLineEdit *txtSignUser;
+    QLineEdit *txtSignPass;
+    QLineEdit *txtSignBio;
+    QRadioButton *rbSignListener;
+    QRadioButton *rbSignArtist;
 
-    // Helper functions to create pages
+    // Artist Dashboard Page
+    QWidget *artistDashboardPage;
+    QPushButton *btnArtistName;
+    QPushButton *btnSingles;
+    QPushButton *btnAlbum1;
+    QPushButton *btnAlbum2;
+    QPushButton *btnAlbum3;
+    QPushButton *btnAddSong;
+    QPushButton *btnAddAlbum;
+    QPushButton *btnLogoutArtist;
+
+    // Artist Profile Page
+    QWidget *artistProfilePage;
+    QLabel *lblProfileFullNameValue;
+    QLabel *lblProfileUsernameValue;
+    QLabel *lblProfileBioValue;
+    QPushButton *btnEditProfile;
+    QPushButton *btnDeleteProfile;
+    QPushButton *btnBackToDashboard;
+
+    // Helper functions
     void createWelcomePage();
     void createLoginPage();
     void createSignUpPage();
+    void createArtistDashboardPage();
+    void createArtistProfilePage();
 };
 
 #endif // MAINWINDOW_H
+
 
