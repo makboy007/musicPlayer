@@ -1,10 +1,22 @@
 #include "mainwindow.h"
 #include "Controller.h"
+#include "Song.h"
+#include "Album.h"
 
 #include <QMessageBox>
 #include <QApplication>
+#include <QSpacerItem>
+#include <QInputDialog>
+#include <QFormLayout>
+#include <QComboBox>
+#include <QSpinBox>
+#include <QDate>
+#include <QDialogButtonBox>
+#include <QScrollArea>
+#include <QFrame>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+// --- Constructor ---
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1) {
     setWindowTitle("Music App");
     resize(500, 500);
 
@@ -157,48 +169,26 @@ void MainWindow::createArtistDashboardPage() {
 
     QHBoxLayout *topLayout = new QHBoxLayout();
 
-    btnArtistName = new QPushButton("Eminem", artistDashboardPage);
+    btnArtistName = new QPushButton("Artist Name", artistDashboardPage);
     btnArtistName->setCursor(Qt::PointingHandCursor);
     btnArtistName->setStyleSheet(
-        "QPushButton {"
-        "border: none;"
-        "font-size: 16px;"
-        "font-weight: bold;"
-        "text-align: left;"
-        "padding: 0px;"
-        "}"
+        "QPushButton { border: none; font-size: 16px; font-weight: bold; text-align: left; padding: 0px; }"
         );
 
     topLayout->addWidget(btnArtistName);
     topLayout->addStretch();
 
-    QVBoxLayout *albumsLayout = new QVBoxLayout();
-    albumsLayout->setSpacing(10);
-
     btnSingles = new QPushButton("Singles", artistDashboardPage);
-    btnAlbum1 = new QPushButton("Recovery", artistDashboardPage);
-    btnAlbum2 = new QPushButton("Relapse", artistDashboardPage);
-    btnAlbum3 = new QPushButton("The Eminem Show", artistDashboardPage);
+    btnSingles->setMinimumHeight(45);
+    btnSingles->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
+        );
 
-    QList<QPushButton*> albumButtons = {btnSingles, btnAlbum1, btnAlbum2, btnAlbum3};
-
-    for (QPushButton *btn : albumButtons) {
-        btn->setMinimumHeight(45);
-        btn->setStyleSheet(
-            "QPushButton {"
-            "text-align: left;"
-            "padding-left: 12px;"
-            "font-size: 15px;"
-            "border: 1px solid gray;"
-            "border-radius: 8px;"
-            "background-color: white;"
-            "}"
-            "QPushButton:hover {"
-            "background-color: #f2f2f2;"
-            "}"
-            );
-        albumsLayout->addWidget(btn);
-    }
+    albumsContainer = new QWidget(artistDashboardPage);
+    albumsLayout = new QVBoxLayout(albumsContainer);
+    albumsLayout->setSpacing(10);
+    albumsLayout->setContentsMargins(0, 0, 0, 0);
 
     QHBoxLayout *bottomLayout = new QHBoxLayout();
     bottomLayout->addStretch();
@@ -214,21 +204,21 @@ void MainWindow::createArtistDashboardPage() {
     bottomLayout->addWidget(btnAddSong);
     bottomLayout->addWidget(btnAddAlbum);
     bottomLayout->addWidget(btnLogoutArtist);
-
     bottomLayout->addStretch();
 
     mainLayout->addLayout(topLayout);
-    mainLayout->addLayout(albumsLayout);
+    mainLayout->addWidget(btnSingles);
+    mainLayout->addWidget(albumsContainer);
     mainLayout->addStretch();
     mainLayout->addLayout(bottomLayout);
 
     connect(btnArtistName, &QPushButton::clicked, this, &MainWindow::showArtistProfilePage);
     connect(btnLogoutArtist, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
-
     connect(btnSingles, &QPushButton::clicked, this, &MainWindow::handleSinglesClicked);
-    connect(btnAlbum1, &QPushButton::clicked, this, &MainWindow::handleAlbum1Clicked);
-    connect(btnAlbum2, &QPushButton::clicked, this, &MainWindow::handleAlbum2Clicked);
-    connect(btnAlbum3, &QPushButton::clicked, this, &MainWindow::handleAlbum3Clicked);
+    connect(btnAddAlbum, &QPushButton::clicked, this, &MainWindow::handleAddAlbum);
+    connect(btnAddSong, &QPushButton::clicked, this, &MainWindow::handleAddSong);
+
+    refreshArtistDashboard();
 }
 
 // --- Artist Profile Page ---
@@ -244,13 +234,13 @@ void MainWindow::createArtistProfilePage() {
     lblTitle->setAlignment(Qt::AlignCenter);
 
     QLabel *lblFullNameTitle = new QLabel("Full Name:", artistProfilePage);
-    lblProfileFullNameValue = new QLabel("Eminem", artistProfilePage);
+    lblProfileFullNameValue = new QLabel("Artist", artistProfilePage);
 
     QLabel *lblUsernameTitle = new QLabel("Username:", artistProfilePage);
-    lblProfileUsernameValue = new QLabel("eminem123", artistProfilePage);
+    lblProfileUsernameValue = new QLabel("artist123", artistProfilePage);
 
     QLabel *lblBioTitle = new QLabel("Biography:", artistProfilePage);
-    lblProfileBioValue = new QLabel("American rapper and songwriter.", artistProfilePage);
+    lblProfileBioValue = new QLabel("Biography", artistProfilePage);
     lblProfileBioValue->setWordWrap(true);
 
     lblFullNameTitle->setStyleSheet("font-weight: bold;");
@@ -294,7 +284,7 @@ void MainWindow::createCollectionPage() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    lblCollectionTitle = new QLabel("Singles", collectionPage);
+    lblCollectionTitle = new QLabel("Collection", collectionPage);
     lblCollectionTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
     lblCollectionTitle->setAlignment(Qt::AlignLeft);
 
@@ -310,51 +300,44 @@ void MainWindow::createCollectionPage() {
 
     btnBackFromCollection = new QPushButton("Back", collectionPage);
     btnBackFromCollection->setMinimumHeight(40);
-    btnBackFromCollection->setMinimumWidth(100);
+    btnBackFromCollection->setMinimumWidth(90);
+
+    btnEditAlbum = new QPushButton("Edit Album", collectionPage);
+    btnEditAlbum->setMinimumHeight(40);
+    btnEditAlbum->setMinimumWidth(90);
+
+    btnDeleteAlbum = new QPushButton("Delete Album", collectionPage);
+    btnDeleteAlbum->setMinimumHeight(40);
+    btnDeleteAlbum->setMinimumWidth(90);
 
     QHBoxLayout *bottomLayout = new QHBoxLayout();
     bottomLayout->addWidget(btnBackFromCollection);
     bottomLayout->addStretch();
+    bottomLayout->addWidget(btnEditAlbum);
+    bottomLayout->addWidget(btnDeleteAlbum);
 
     mainLayout->addWidget(lblCollectionTitle);
     mainLayout->addWidget(songsScrollArea);
     mainLayout->addLayout(bottomLayout);
 
     connect(btnBackFromCollection, &QPushButton::clicked, this, &MainWindow::showArtistDashboardPage);
+    connect(btnDeleteAlbum, &QPushButton::clicked, this, &MainWindow::handleDeleteAlbum);
+    connect(btnEditAlbum, &QPushButton::clicked, this, &MainWindow::handleEditAlbum);
 }
 
 // --- Navigation ---
-void MainWindow::showWelcomePage() {
-    stackedWidget->setCurrentWidget(welcomePage);
-}
-
-void MainWindow::showLoginPage() {
-    stackedWidget->setCurrentWidget(loginPage);
-}
-
-void MainWindow::showSignUpPage() {
-    stackedWidget->setCurrentWidget(signUpPage);
-}
-
-void MainWindow::showArtistDashboardPage() {
-    stackedWidget->setCurrentWidget(artistDashboardPage);
-}
-
-void MainWindow::showArtistProfilePage() {
-    stackedWidget->setCurrentWidget(artistProfilePage);
-}
-
-void MainWindow::showCollectionPage() {
-    stackedWidget->setCurrentWidget(collectionPage);
-}
+void MainWindow::showWelcomePage() { stackedWidget->setCurrentWidget(welcomePage); }
+void MainWindow::showLoginPage() { stackedWidget->setCurrentWidget(loginPage); }
+void MainWindow::showSignUpPage() { stackedWidget->setCurrentWidget(signUpPage); }
+void MainWindow::showArtistDashboardPage() { refreshArtistDashboard(); stackedWidget->setCurrentWidget(artistDashboardPage); }
+void MainWindow::showArtistProfilePage() { stackedWidget->setCurrentWidget(artistProfilePage); }
+void MainWindow::showCollectionPage() { stackedWidget->setCurrentWidget(collectionPage); }
 
 // --- Collection Helpers ---
 void MainWindow::clearSongsList() {
     QLayoutItem *item;
     while ((item = songsLayout->takeAt(0)) != nullptr) {
-        if (item->widget()) {
-            delete item->widget();
-        }
+        if (item->widget()) delete item->widget();
         delete item;
     }
 }
@@ -363,17 +346,8 @@ QPushButton* MainWindow::createSongItemButton(const QString &songTitle) {
     QPushButton *btnSong = new QPushButton(songTitle, collectionPage);
     btnSong->setMinimumHeight(45);
     btnSong->setStyleSheet(
-        "QPushButton {"
-        "text-align: left;"
-        "padding-left: 12px;"
-        "font-size: 14px;"
-        "border: 1px solid gray;"
-        "border-radius: 8px;"
-        "background-color: white;"
-        "}"
-        "QPushButton:hover {"
-        "background-color: #f2f2f2;"
-        "}"
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
         );
     return btnSong;
 }
@@ -382,52 +356,181 @@ void MainWindow::loadCollectionPage(const QString &title, const QStringList &son
     lblCollectionTitle->setText(title);
     clearSongsList();
 
-    for (const QString &song : songs) {
-        songsLayout->addWidget(createSongItemButton(song));
+    if (songs.isEmpty()) {
+        QLabel *lblEmpty = new QLabel("No songs found.", collectionPage);
+        lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+        songsLayout->addWidget(lblEmpty);
+    } else {
+        for (const QString &song : songs) {
+            songsLayout->addWidget(createSongItemButton(song));
+        }
     }
 
     songsLayout->addStretch();
     showCollectionPage();
 }
 
-// --- Dashboard Item Handlers ---
+// --- Dashboard Helpers ---
+void MainWindow::clearAlbumsList() {
+    QLayoutItem *item;
+    while ((item = albumsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+}
+
+QPushButton* MainWindow::createAlbumItemButton(const QString &albumTitle, int albumId) {
+    QPushButton *btnAlbum = new QPushButton(albumTitle, artistDashboardPage);
+    btnAlbum->setMinimumHeight(45);
+    btnAlbum->setProperty("albumId", albumId);
+    btnAlbum->setProperty("albumTitle", albumTitle);
+    btnAlbum->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
+        );
+
+    connect(btnAlbum, &QPushButton::clicked, this, &MainWindow::onAlbumButtonClicked);
+    return btnAlbum;
+}
+
+void MainWindow::refreshArtistDashboard() {
+    clearAlbumsList();
+
+    auto albumsOpt = Controller::getInstance().myAlbums();
+
+    if (!albumsOpt.has_value()) {
+        albumsLayout->addStretch();
+        return;
+    }
+
+    const std::vector<Album> &albums = albumsOpt.value();
+
+    for (const Album &album : albums) {
+        albumsLayout->addWidget(createAlbumItemButton(
+            QString::fromStdString(album.getName()),
+            album.getAlbumID()
+            ));
+    }
+
+    albumsLayout->addStretch();
+}
+
+void MainWindow::onAlbumButtonClicked() {
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (btn) {
+        int id = btn->property("albumId").toInt();
+        QString title = btn->property("albumTitle").toString();
+        handleAlbumClicked(id, title);
+    }
+}
+
+void MainWindow::handleAlbumClicked(int albumId, const QString &albumTitle) {
+    currentAlbumId = albumId;
+
+    btnEditAlbum->setVisible(true);
+    btnDeleteAlbum->setVisible(true);
+
+    QStringList songsList;
+    auto songsOpt = Controller::getInstance().showSongsInAlbum(albumId);
+
+    if (songsOpt.has_value()) {
+        for (const Song &song : songsOpt.value()) {
+            songsList << QString::fromStdString(song.getName());
+        }
+    }
+
+    loadCollectionPage(albumTitle, songsList);
+}
+
 void MainWindow::handleSinglesClicked() {
-    QStringList songs;
-    songs << "Lose Yourself"
-          << "Mockingbird"
-          << "Without Me";
+    currentAlbumId = -1;
 
-    loadCollectionPage("Singles", songs);
-}
+    btnEditAlbum->setVisible(false);
+    btnDeleteAlbum->setVisible(false);
 
-void MainWindow::handleAlbum1Clicked() {
-    QStringList songs;
-    songs << "Cold Wind Blows"
-          << "Talkin 2 Myself"
-          << "Not Afraid";
+    auto songsOpt = Controller::getInstance().mySingleSong();
+    QStringList songsList;
 
-    loadCollectionPage("Recovery", songs);
-}
+    if (songsOpt.has_value()) {
+        for (const auto& song : songsOpt.value()) {
+            songsList << QString::fromStdString(song.getName());
+        }
+    }
 
-void MainWindow::handleAlbum2Clicked() {
-    QStringList songs;
-    songs << "3 a.m."
-          << "Beautiful"
-          << "Crack a Bottle";
-
-    loadCollectionPage("Relapse", songs);
-}
-
-void MainWindow::handleAlbum3Clicked() {
-    QStringList songs;
-    songs << "White America"
-          << "Business"
-          << "Cleanin' Out My Closet";
-
-    loadCollectionPage("The Eminem Show", songs);
+    loadCollectionPage("Singles", songsList);
 }
 
 // --- Handlers ---
+void MainWindow::handleDeleteAlbum() {
+    if (currentAlbumId == -1) return;
+
+    auto reply = QMessageBox::question(
+        this,
+        "Delete Album",
+        "Are you sure you want to delete this album?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+        if (Controller::getInstance().removeAlbum(currentAlbumId)) {
+            QMessageBox::information(this, "Success", "Album deleted successfully.");
+            showArtistDashboardPage();
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to delete album.");
+        }
+    }
+}
+
+void MainWindow::handleEditAlbum() {
+    if (currentAlbumId == -1)
+        return;
+
+    bool ok;
+    QString newTitle = QInputDialog::getText(
+        this,
+        "Edit Album",
+        "Enter new Album Name:",
+        QLineEdit::Normal,
+        lblCollectionTitle->text(),
+        &ok
+        );
+
+    newTitle = newTitle.trimmed();
+
+    if (!ok || newTitle.isEmpty())
+        return;
+
+    bool result = Controller::getInstance().editAlbum(
+        currentAlbumId,
+        newTitle.toStdString()
+        );
+
+    if (result) {
+        QMessageBox::information(this, "Success", "Album updated successfully.");
+
+        // عنوان فعلی صفحه
+        lblCollectionTitle->setText(newTitle);
+
+        // داشبورد از نو ساخته شود تا دکمه آلبوم با نام جدید ساخته شود
+        refreshArtistDashboard();
+
+        // لیست آهنگ‌های همین آلبوم دوباره با نام جدید لود شود
+        QStringList songsList;
+        auto songsOpt = Controller::getInstance().showSongsInAlbum(currentAlbumId);
+
+        if (songsOpt.has_value()) {
+            for (const Song &song : songsOpt.value()) {
+                songsList << QString::fromStdString(song.getName());
+            }
+        }
+
+        loadCollectionPage(newTitle, songsList);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to update album.");
+    }
+}
+
+
 void MainWindow::handleLogin() {
     QString user = txtLoginUser->text();
     QString pass = txtLoginPass->text();
@@ -437,61 +540,117 @@ void MainWindow::handleLogin() {
         return;
     }
 
-    bool success = Controller::getInstance().login(user.toStdString(), pass.toStdString());
-
-    if (success) {
+    if (Controller::getInstance().login(user.toStdString(), pass.toStdString())) {
         QMessageBox::information(this, "Success", "Welcome back!");
         showArtistDashboardPage();
     } else {
-        QMessageBox::critical(this, "Login Failed", "Invalid username or password.");
+        QMessageBox::critical(this, "Login Failed", "Invalid credentials.");
     }
 }
 
 void MainWindow::handleSignUp() {
-    QString fullName = txtSignFull->text();
-    QString user = txtSignUser->text();
-    QString pass = txtSignPass->text();
-    QString bio = txtSignBio->text();
-    bool isArtist = rbSignArtist->isChecked();
-
-    if (fullName.isEmpty() || user.isEmpty() || pass.isEmpty()) {
-        QMessageBox::warning(this, "Error", "Please fill required fields.");
-        return;
-    }
-
-    if (!rbSignArtist->isChecked() && !rbSignListener->isChecked()) {
-        QMessageBox::warning(this, "Error", "Please select a role.");
-        return;
-    }
-
-    bool success = Controller::getInstance().signUp(
-        fullName.toStdString(),
-        user.toStdString(),
-        pass.toStdString(),
-        bio.toStdString(),
-        isArtist
-        );
-
-    if (success) {
-        QMessageBox::information(this, "Success", "Account created successfully! Please login.");
+    if (Controller::getInstance().signUp(
+            txtSignFull->text().toStdString(),
+            txtSignUser->text().toStdString(),
+            txtSignPass->text().toStdString(),
+            txtSignBio->text().toStdString(),
+            rbSignArtist->isChecked()
+            )) {
+        QMessageBox::information(this, "Success", "Account created successfully!");
         showLoginPage();
     } else {
-        QMessageBox::critical(this, "Sign Up Failed", "Username already exists or an error occurred.");
+        QMessageBox::critical(this, "Failed", "Username already exists.");
     }
 }
 
 void MainWindow::handleDeleteProfile() {
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(
+    if (QMessageBox::question(this, "Delete", "Are you sure?") == QMessageBox::Yes) {
+        showWelcomePage();
+    }
+}
+
+void MainWindow::handleAddAlbum() {
+    bool ok;
+    QString albumName = QInputDialog::getText(
         this,
-        "Delete Profile",
-        "Are you sure you want to delete your profile?",
-        QMessageBox::Yes | QMessageBox::No
+        "New Album",
+        "Enter Album Name:",
+        QLineEdit::Normal,
+        "",
+        &ok
         );
 
-    if (reply == QMessageBox::Yes) {
-        QMessageBox::information(this, "Deleted", "Profile deleted successfully.");
-        showWelcomePage();
+    if (ok && !albumName.isEmpty()) {
+        if (Controller::getInstance().addMyAlbum(albumName.toStdString())) {
+            QMessageBox::information(this, "Success", "Album created successfully!");
+            refreshArtistDashboard();
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to create album.");
+        }
+    }
+}
+
+void MainWindow::handleAddSong() {
+    QDialog dialog(this);
+    dialog.setWindowTitle("Add New Song");
+
+    QFormLayout *form = new QFormLayout(&dialog);
+
+    QLineEdit *nameEdit = new QLineEdit(&dialog);
+    QSpinBox *yearEdit = new QSpinBox(&dialog);
+    yearEdit->setRange(1900, 2100);
+    yearEdit->setValue(QDate::currentDate().year());
+
+    QLineEdit *genreEdit = new QLineEdit(&dialog);
+
+    QComboBox *albumCombo = new QComboBox(&dialog);
+    albumCombo->addItem("None (Single)", 0);
+
+    auto albumsOpt = Controller::getInstance().myAlbums();
+    if (albumsOpt.has_value()) {
+        for (const auto &album : albumsOpt.value()) {
+            albumCombo->addItem(QString::fromStdString(album.getName()), album.getAlbumID());
+        }
+    }
+
+    form->addRow("Song Name:", nameEdit);
+    form->addRow("Release Year:", yearEdit);
+    form->addRow("Genre:", genreEdit);
+    form->addRow("Album:", albumCombo);
+
+    QDialogButtonBox *buttonBox =
+        new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+                             Qt::Horizontal, &dialog);
+
+    form->addRow(buttonBox);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        const QString songName = nameEdit->text().trimmed();
+        const QString genre = genreEdit->text().trimmed();
+        const int year = yearEdit->value();
+        const int albumId = albumCombo->currentData().toInt();
+
+        if (songName.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Song name cannot be empty.");
+            return;
+        }
+
+        bool ok = Controller::getInstance().addmySong(
+            songName.toStdString(),
+            year,
+            genre.toStdString(),
+            albumId
+            );
+
+        if (ok) {
+            QMessageBox::information(this, "Success", "Song added successfully.");
+            refreshArtistDashboard();
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to add song.");
+        }
     }
 }
 

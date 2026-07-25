@@ -60,7 +60,18 @@ vector<Album> AlbumRepository::Albums(int artistID) const
 }
 
 
-
+bool AlbumRepository::updateAlbumName(int albumId, const string& newName)
+{
+    for (auto &album : albums)
+    {
+        if (album.getAlbumID() == albumId)
+        {
+            album.setName(newName);
+            return true;
+        }
+    }
+    return false;
+}
 
 
 

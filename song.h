@@ -33,6 +33,8 @@ public:
 
     int getAlbumID() const { return albumID; }
     void setAlbumID(int albumID) { this->albumID = albumID; }
+
+    void edit(string name,int releaseYear, string genre, int artistId, int albumID);
 };
 
 #endif // SONG_H

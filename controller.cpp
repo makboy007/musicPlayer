@@ -3,7 +3,6 @@
 #include "ArtistRepository.h"
 #include "IdGenerator.h"
 #include "DataManager.h"
-
 using namespace std;
 
 bool Controller::signUp(string fullName, string username, string password, string bio, bool isArtistRole)
@@ -57,3 +56,123 @@ void Controller::logout()
     currentUserId = -1;
     isCurrentArtist = false;
 }
+
+
+
+optional<vector<Album>> Controller:: myAlbums()
+{
+    if(isCurrentArtist&&currentUserId != -1)
+    {
+        return AlbumRepository::getInstance().Albums(currentUserId);
+    }
+    return nullopt;
+}
+
+optional<vector<Song>> Controller:: mySingleSong()
+{
+    if(isCurrentArtist&&currentUserId != -1)
+    {
+        return SongRepository::getInstance().singleSongs(currentUserId);
+    }
+    return nullopt;
+}
+
+bool Controller::addMyAlbum(string nameAlbum)
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        Album newAlbum(nameAlbum,currentUserId);
+        AlbumRepository::getInstance().save(newAlbum);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+bool Controller:: removeAlbum(int albumID)
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        AlbumRepository::getInstance().remove(albumID);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+
+bool Controller:: addmySong(string nameSong,int year,string genre,int albumID)
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        Song newSong(nameSong,year,genre,currentUserId,albumID);
+        SongRepository::getInstance().save(newSong);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+bool Controller:: removeSong(int songID)
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        SongRepository::getInstance().remove(songID);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+optional<vector<Song>> Controller:: showSongsInAlbum(int albumID)
+{
+    if(isCurrentArtist&&currentUserId != -1)
+    {
+        return SongRepository::getInstance().getByAlbum(albumID);
+    }
+    return nullopt;
+}
+
+bool Controller:: editAlbum(int albumID,string newName)
+{
+    if (currentUserId != -1 && isCurrentArtist)
+    {
+        if (AlbumRepository::getInstance().updateAlbumName(albumID, newName))
+        {
+            DataManager::saveAll();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Controller:: editSong(int songID ,string nameSong,int year,string genre,int albumID)
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        SongRepository::getInstance().search(songID)->edit(nameSong,year,genre,currentUserId,albumID);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
