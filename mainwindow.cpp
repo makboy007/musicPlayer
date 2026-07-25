@@ -2,6 +2,7 @@
 #include "Controller.h"
 #include "Song.h"
 #include "Album.h"
+#include "Artist.h"
 
 #include <QMessageBox>
 #include <QApplication>
@@ -14,6 +15,14 @@
 #include <QDialogButtonBox>
 #include <QScrollArea>
 #include <QFrame>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QStackedWidget>
+#include <QRadioButton>
+#include <QDialog>
 
 // --- Constructor ---
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1) {
@@ -41,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
 }
 
 MainWindow::~MainWindow() {}
+
 
 // --- Welcome Page ---
 void MainWindow::createWelcomePage() {
@@ -81,6 +91,7 @@ void MainWindow::createWelcomePage() {
     });
 }
 
+
 // --- Login Page ---
 void MainWindow::createLoginPage() {
     loginPage = new QWidget();
@@ -114,6 +125,7 @@ void MainWindow::createLoginPage() {
     connect(btnBack, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
     connect(btnLogin, &QPushButton::clicked, this, &MainWindow::handleLogin);
 }
+
 
 // --- Sign Up Page ---
 void MainWindow::createSignUpPage() {
@@ -159,6 +171,7 @@ void MainWindow::createSignUpPage() {
     connect(btnSign, &QPushButton::clicked, this, &MainWindow::handleSignUp);
 }
 
+
 // --- Artist Dashboard Page ---
 void MainWindow::createArtistDashboardPage() {
     artistDashboardPage = new QWidget();
@@ -172,7 +185,18 @@ void MainWindow::createArtistDashboardPage() {
     btnArtistName = new QPushButton("Artist Name", artistDashboardPage);
     btnArtistName->setCursor(Qt::PointingHandCursor);
     btnArtistName->setStyleSheet(
-        "QPushButton { border: none; font-size: 16px; font-weight: bold; text-align: left; padding: 0px; }"
+        "QPushButton {"
+        " border: none;"
+        " color: #1E90FF;"
+        " font-size: 16px;"
+        " font-weight: bold;"
+        " text-align: left;"
+        " padding: 0px;"
+        "}"
+        "QPushButton:hover {"
+        " color: #0b72d0;"
+        " text-decoration: underline;"
+        "}"
         );
 
     topLayout->addWidget(btnArtistName);
@@ -220,6 +244,7 @@ void MainWindow::createArtistDashboardPage() {
 
     refreshArtistDashboard();
 }
+
 
 // --- Artist Profile Page ---
 void MainWindow::createArtistProfilePage() {
@@ -273,8 +298,10 @@ void MainWindow::createArtistProfilePage() {
     mainLayout->addLayout(bottomLayout);
 
     connect(btnBackToDashboard, &QPushButton::clicked, this, &MainWindow::showArtistDashboardPage);
+    connect(btnEditProfile, &QPushButton::clicked, this, &MainWindow::handleEditProfile);
     connect(btnDeleteProfile, &QPushButton::clicked, this, &MainWindow::handleDeleteProfile);
 }
+
 
 // --- Collection Page ---
 void MainWindow::createCollectionPage() {
@@ -325,13 +352,42 @@ void MainWindow::createCollectionPage() {
     connect(btnEditAlbum, &QPushButton::clicked, this, &MainWindow::handleEditAlbum);
 }
 
+
 // --- Navigation ---
-void MainWindow::showWelcomePage() { stackedWidget->setCurrentWidget(welcomePage); }
-void MainWindow::showLoginPage() { stackedWidget->setCurrentWidget(loginPage); }
-void MainWindow::showSignUpPage() { stackedWidget->setCurrentWidget(signUpPage); }
-void MainWindow::showArtistDashboardPage() { refreshArtistDashboard(); stackedWidget->setCurrentWidget(artistDashboardPage); }
-void MainWindow::showArtistProfilePage() { stackedWidget->setCurrentWidget(artistProfilePage); }
-void MainWindow::showCollectionPage() { stackedWidget->setCurrentWidget(collectionPage); }
+void MainWindow::showWelcomePage() {
+    stackedWidget->setCurrentWidget(welcomePage);
+}
+
+void MainWindow::showLoginPage() {
+    stackedWidget->setCurrentWidget(loginPage);
+}
+
+void MainWindow::showSignUpPage() {
+    stackedWidget->setCurrentWidget(signUpPage);
+}
+
+void MainWindow::showArtistDashboardPage() {
+    refreshArtistDashboard();
+    stackedWidget->setCurrentWidget(artistDashboardPage);
+}
+
+void MainWindow::showArtistProfilePage() {
+    Artist* currentArtist = Controller::getInstance().getCurrentAccount();
+    if (currentArtist != nullptr) {
+        lblProfileFullNameValue->setText(QString::fromStdString(currentArtist->getFullName()));
+        lblProfileUsernameValue->setText(QString::fromStdString(currentArtist->getUserName()));
+        lblProfileBioValue->setText(QString::fromStdString(currentArtist->getBiography()));
+
+        btnArtistName->setText(QString::fromStdString(currentArtist->getFullName()));
+    }
+
+    stackedWidget->setCurrentWidget(artistProfilePage);
+}
+
+void MainWindow::showCollectionPage() {
+    stackedWidget->setCurrentWidget(collectionPage);
+}
+
 
 // --- Collection Helpers ---
 void MainWindow::clearSongsList() {
@@ -375,6 +431,7 @@ void MainWindow::loadCollectionPage(const QString &title, const std::vector<Song
     showCollectionPage();
 }
 
+
 // --- Dashboard Helpers ---
 void MainWindow::clearAlbumsList() {
     QLayoutItem *item;
@@ -400,6 +457,13 @@ QPushButton* MainWindow::createAlbumItemButton(const QString &albumTitle, int al
 
 void MainWindow::refreshArtistDashboard() {
     clearAlbumsList();
+
+    Artist* currentArtist = Controller::getInstance().getCurrentAccount();
+    if (currentArtist != nullptr) {
+        btnArtistName->setText(QString::fromStdString(currentArtist->getFullName()));
+    } else {
+        btnArtistName->setText("Artist Name");
+    }
 
     auto albumsOpt = Controller::getInstance().myAlbums();
 
@@ -440,6 +504,7 @@ void MainWindow::handleAlbumClicked(int albumId, const QString &albumTitle) {
     if (songsOpt.has_value()) {
         songsList = songsOpt.value();
     }
+
     loadCollectionPage(albumTitle, songsList);
 }
 
@@ -454,8 +519,10 @@ void MainWindow::handleSinglesClicked() {
     if (songsOpt.has_value()) {
         songsList = songsOpt.value();
     }
+
     loadCollectionPage("Singles", songsList);
 }
+
 
 // --- Song Details, Edit & Delete Handlers ---
 void MainWindow::onSongButtonClicked() {
@@ -497,8 +564,11 @@ void MainWindow::handleSongClicked(int songID) {
             if (Controller::getInstance().removeSong(songID)) {
                 QMessageBox::information(this, "Success", "Song deleted successfully.");
                 dialog.accept();
-                if (currentAlbumId == -1) handleSinglesClicked();
-                else handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
+
+                if (currentAlbumId == -1)
+                    handleSinglesClicked();
+                else
+                    handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
             }
         }
     });
@@ -519,6 +589,7 @@ void MainWindow::handleEditSong(const Song& song) {
     QFormLayout *form = new QFormLayout(&dialog);
 
     QLineEdit *nameEdit = new QLineEdit(QString::fromStdString(song.getName()), &dialog);
+
     QSpinBox *yearEdit = new QSpinBox(&dialog);
     yearEdit->setRange(1900, 2100);
     yearEdit->setValue(song.getReleaseYear());
@@ -535,7 +606,6 @@ void MainWindow::handleEditSong(const Song& song) {
         }
     }
 
-    // انتخاب آلبوم فعلی در کمبوباکس
     int index = albumCombo->findData(song.getAlbumID());
     if (index != -1) albumCombo->setCurrentIndex(index);
 
@@ -544,16 +614,17 @@ void MainWindow::handleEditSong(const Song& song) {
     form->addRow("Genre:", genreEdit);
     form->addRow("Album:", albumCombo);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, &dialog);
+    QDialogButtonBox *buttonBox =
+        new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, &dialog);
     form->addRow(buttonBox);
 
     connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
     if (dialog.exec() == QDialog::Accepted) {
-        string newName = nameEdit->text().trimmed().toStdString();
+        std::string newName = nameEdit->text().trimmed().toStdString();
         int newYear = yearEdit->value();
-        string newGenre = genreEdit->text().trimmed().toStdString();
+        std::string newGenre = genreEdit->text().trimmed().toStdString();
         int newAlbumID = albumCombo->currentData().toInt();
 
         if (newName.empty()) {
@@ -563,12 +634,83 @@ void MainWindow::handleEditSong(const Song& song) {
 
         if (Controller::getInstance().editSong(song.getSongID(), newName, newYear, newGenre, newAlbumID)) {
             QMessageBox::information(this, "Success", "Song updated successfully.");
-            // رفرش لیست
-            if (currentAlbumId == -1) handleSinglesClicked();
-            else handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
+
+            if (currentAlbumId == -1)
+                handleSinglesClicked();
+            else
+                handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
         }
     }
 }
+
+
+// --- Profile Handlers ---
+void MainWindow::handleEditProfile()
+{
+    Artist* currentArtist = Controller::getInstance().getCurrentAccount();
+    if (currentArtist == nullptr) {
+        QMessageBox::warning(this, "Error", "No artist is currently logged in.");
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("Edit Profile");
+
+    QFormLayout *formLayout = new QFormLayout(&dialog);
+
+    QLineEdit *fullNameEdit = new QLineEdit(
+        QString::fromStdString(currentArtist->getFullName()), &dialog);
+
+    QLineEdit *usernameEdit = new QLineEdit(
+        QString::fromStdString(currentArtist->getUserName()), &dialog);
+
+    QLineEdit *bioEdit = new QLineEdit(
+        QString::fromStdString(currentArtist->getBiography()), &dialog);
+
+    QLineEdit *passwordEdit = new QLineEdit(
+        QString::fromStdString(currentArtist->getPassword()), &dialog);
+
+    formLayout->addRow("Full Name:", fullNameEdit);
+    formLayout->addRow("Username:", usernameEdit);
+    formLayout->addRow("Biography:", bioEdit);
+    formLayout->addRow("Password:", passwordEdit);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+
+    formLayout->addWidget(buttonBox);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QString newFullName = fullNameEdit->text().trimmed();
+        QString newUsername = usernameEdit->text().trimmed();
+        QString newBio = bioEdit->text().trimmed();
+        QString newPassword = passwordEdit->text().trimmed();
+
+        if (newFullName.isEmpty() || newUsername.isEmpty() || newPassword.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Full Name, Username, and Password cannot be empty.");
+            return;
+        }
+
+        bool result = Controller::getInstance().updateProfile(
+            newFullName.toStdString(),
+            newUsername.toStdString(),
+            newBio.toStdString(),
+            newPassword.toStdString()
+            );
+
+        if (result) {
+            QMessageBox::information(this, "Success", "Profile updated successfully.");
+            showArtistProfilePage();
+        } else {
+            QMessageBox::warning(this, "Error", "Profile update failed. Username may already exist.");
+        }
+    }
+}
+
+
 
 // --- Other Handlers ---
 void MainWindow::handleDeleteAlbum() {
@@ -626,7 +768,7 @@ void MainWindow::handleEditAlbum() {
 }
 
 void MainWindow::handleLogin() {
-    QString user = txtLoginUser->text();
+    QString user = txtLoginUser->text().trimmed();
     QString pass = txtLoginPass->text();
 
     if (user.isEmpty() || pass.isEmpty()) {
@@ -644,10 +786,10 @@ void MainWindow::handleLogin() {
 
 void MainWindow::handleSignUp() {
     if (Controller::getInstance().signUp(
-            txtSignFull->text().toStdString(),
-            txtSignUser->text().toStdString(),
+            txtSignFull->text().trimmed().toStdString(),
+            txtSignUser->text().trimmed().toStdString(),
             txtSignPass->text().toStdString(),
-            txtSignBio->text().toStdString(),
+            txtSignBio->text().trimmed().toStdString(),
             rbSignArtist->isChecked()
             )) {
         QMessageBox::information(this, "Success", "Account created successfully!");
@@ -658,8 +800,26 @@ void MainWindow::handleSignUp() {
 }
 
 void MainWindow::handleDeleteProfile() {
-    if (QMessageBox::question(this, "Delete", "Are you sure?") == QMessageBox::Yes) {
-        showWelcomePage();
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Delete Profile",
+        "Are you sure you want to delete your profile?\nThis action cannot be undone.",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+        bool result = Controller::getInstance().removeArtist();
+
+        if (result) {
+            QMessageBox::information(this, "Success", "Profile deleted successfully.");
+
+            txtLoginUser->clear();
+            txtLoginPass->clear();
+
+            showWelcomePage();
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to delete profile.");
+        }
     }
 }
 
@@ -673,6 +833,8 @@ void MainWindow::handleAddAlbum() {
         "",
         &ok
         );
+
+    albumName = albumName.trimmed();
 
     if (ok && !albumName.isEmpty()) {
         if (Controller::getInstance().addMyAlbum(albumName.toStdString())) {
@@ -691,6 +853,7 @@ void MainWindow::handleAddSong() {
     QFormLayout *form = new QFormLayout(&dialog);
 
     QLineEdit *nameEdit = new QLineEdit(&dialog);
+
     QSpinBox *yearEdit = new QSpinBox(&dialog);
     yearEdit->setRange(1900, 2100);
     yearEdit->setValue(QDate::currentDate().year());
@@ -747,4 +910,6 @@ void MainWindow::handleAddSong() {
         }
     }
 }
+
+
 

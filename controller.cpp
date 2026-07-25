@@ -162,12 +162,60 @@ optional<Song> Controller::getSong(int songID)
     return SongRepository::getInstance().search(songID);
 }
 
+Artist* Controller::getCurrentAccount()
+{
+    if (currentUserId == -1) return nullptr;
 
+    // گرفتن لیست (حتی اگر const باشد)
+    auto& artists = ArtistRepository::getInstance().getAll();
 
+    for (const auto& artist : artists)
+    {
+        if (artist.getID() == currentUserId)
+        {
+            return const_cast<Artist*>(&artist);
+        }
+    }
+    return nullptr;
+}
 
+bool Controller::updateProfile(const string& fullName, const string& username,const string& biography,const string& password)
+{
+    if (fullName.empty() || username.empty() || password.empty()) {
+        return false;
+    }
 
+    const auto& artists = ArtistRepository::getInstance().getAll();
+    for (const auto& artist : artists) {
+        if (artist.getUserName() == username &&
+            artist.getID() != currentUserId) {
+            return false;
+        }
+    }
 
+    Artist* currentAccount = getCurrentAccount();
+    if (currentAccount == nullptr) {
+        return false;
+    }
 
+    currentAccount->setFullName(fullName);
+    currentAccount->setUserName(username);
+    currentAccount->setBiography(biography);
+    currentAccount->setPassword(password);
+
+    DataManager::saveAll();
+    return true;
+}
+bool Controller:: removeArtist()
+{
+    if(currentUserId!=-1&&isCurrentArtist)
+    {
+        ArtistRepository::getInstance().remove(currentUserId);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
 
 
 

@@ -7,6 +7,7 @@
 
 #include"albumrepository.h"
 #include"songrepository.h"
+#include"artist.h"
 using namespace std;
 
 class Controller {
@@ -41,6 +42,10 @@ public:
    bool removeSong(int songID);
    bool editSong(int songID, string nameSong, int year, string genre, int albumID);
    optional<Song> getSong(int songID);
+
+   Artist* getCurrentAccount();
+   bool updateProfile(const string& fullName,const string& username,const string& biography,const string& password);
+   bool removeArtist();
 };
 
 #endif
