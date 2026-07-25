@@ -8,6 +8,8 @@
 #include"albumrepository.h"
 #include"songrepository.h"
 #include"artist.h"
+#include"listener.h"
+#include"playlist.h"
 using namespace std;
 
 class Controller {
@@ -46,6 +48,15 @@ public:
    Artist* getCurrentAccount();
    bool updateProfile(const string& fullName,const string& username,const string& biography,const string& password);
    bool removeArtist();
+
+    //---------------------------
+   Listener* getCurrentListener();
+   optional<vector<Playlist>> myPlaylist();
+   bool addMyPlaylist(string namePlaylist);
+   bool removePlaylist(int PlaylistID);
+    bool editPlaylist(int PlaylistID ,string newName);
+   optional<vector<Song>> showSongsInPlaylist(int PlaylistID);
+    optional<vector<Song>> myLikeSong();
 };
 
 #endif

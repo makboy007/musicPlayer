@@ -25,7 +25,7 @@ public:
     }
     const vector<Album>& getAll() const { return albums; }
 
-    bool updateAlbumName(int albumId, const std::string& newName);
+    bool updateAlbumName(int albumId, const string& newName);
 };
 
 #endif // ALBUMREPOSITORY_H

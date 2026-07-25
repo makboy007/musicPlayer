@@ -3,6 +3,8 @@
 #include "Song.h"
 #include "Album.h"
 #include "Artist.h"
+#include "Listener.h"
+#include "Playlist.h"
 
 #include <QMessageBox>
 #include <QApplication>
@@ -23,9 +25,11 @@
 #include <QStackedWidget>
 #include <QRadioButton>
 #include <QDialog>
+#include <QListWidget>
+#include <QListWidgetItem>
 
 // --- Constructor ---
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1), currentPlaylistId(-1) {
     setWindowTitle("Music App");
     resize(500, 500);
 
@@ -38,6 +42,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     createArtistDashboardPage();
     createArtistProfilePage();
     createCollectionPage();
+    createListenerDashboardPage();
+
+    // pages for listener playlists
+    createPlaylistsPage();
+    createPlaylistSongsPage();
 
     stackedWidget->addWidget(welcomePage);
     stackedWidget->addWidget(loginPage);
@@ -45,6 +54,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     stackedWidget->addWidget(artistDashboardPage);
     stackedWidget->addWidget(artistProfilePage);
     stackedWidget->addWidget(collectionPage);
+    stackedWidget->addWidget(listenerDashboardPage);
+    stackedWidget->addWidget(playlistsPage);
+    stackedWidget->addWidget(playlistSongsPage);
 
     showWelcomePage();
 }
@@ -245,6 +257,75 @@ void MainWindow::createArtistDashboardPage() {
     refreshArtistDashboard();
 }
 
+// --- Listener Dashboard Page ---
+void MainWindow::createListenerDashboardPage() {
+    listenerDashboardPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(listenerDashboardPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    QHBoxLayout *topLayout = new QHBoxLayout();
+
+    btnListenerName = new QPushButton("Listener Name", listenerDashboardPage);
+    btnListenerName->setCursor(Qt::PointingHandCursor);
+    btnListenerName->setStyleSheet(
+        "QPushButton {"
+        " border: none;"
+        " color: #1E90FF;"
+        " font-size: 16px;"
+        " font-weight: bold;"
+        " text-align: left;"
+        " padding: 0px;"
+        "}"
+        "QPushButton:hover {"
+        " color: #0b72d0;"
+        " text-decoration: underline;"
+        "}"
+        );
+
+    topLayout->addWidget(btnListenerName);
+    topLayout->addStretch();
+
+    QLabel *lblTitle = new QLabel("Listener Dashboard", listenerDashboardPage);
+    lblTitle->setAlignment(Qt::AlignCenter);
+    lblTitle->setStyleSheet("font-size: 20px; font-weight: bold;");
+
+    btnBrowseArtists = new QPushButton("Browse Artists", listenerDashboardPage);
+    btnBrowseArtists->setMinimumHeight(45);
+    btnBrowseArtists->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
+        );
+
+    btnMyPlaylists = new QPushButton("My Playlists", listenerDashboardPage);
+    btnMyPlaylists->setMinimumHeight(45);
+    btnMyPlaylists->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
+        );
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addStretch();
+
+    btnLogoutListener = new QPushButton("Logout", listenerDashboardPage);
+    btnLogoutListener->setMinimumWidth(100);
+
+    bottomLayout->addWidget(btnLogoutListener);
+    bottomLayout->addStretch();
+
+    mainLayout->addLayout(topLayout);
+    mainLayout->addWidget(lblTitle);
+    mainLayout->addSpacing(20);
+    mainLayout->addWidget(btnBrowseArtists);
+    mainLayout->addWidget(btnMyPlaylists);
+    mainLayout->addStretch();
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnLogoutListener, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
+    connect(btnMyPlaylists, &QPushButton::clicked, this, &MainWindow::showPlaylistsPage);
+}
+
 
 // --- Artist Profile Page ---
 void MainWindow::createArtistProfilePage() {
@@ -353,6 +434,164 @@ void MainWindow::createCollectionPage() {
 }
 
 
+// --- Playlists Page ---
+void MainWindow::createPlaylistsPage() {
+    playlistsPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(playlistsPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    QLabel *lblTitle = new QLabel("My Playlists", playlistsPage);
+    lblTitle->setAlignment(Qt::AlignCenter);
+    lblTitle->setStyleSheet("font-size: 20px; font-weight: bold;");
+
+    playlistsListWidget = new QListWidget(playlistsPage);
+    playlistsListWidget->setStyleSheet(
+        "QListWidget { font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QListWidget::item { padding: 10px; }"
+        "QListWidget::item:selected { background-color: #dbeafe; color: black; }"
+        );
+
+    btnBackFromPlaylists = new QPushButton("Back", playlistsPage);
+    btnAddPlaylist = new QPushButton("Add Playlist", playlistsPage);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addWidget(btnBackFromPlaylists);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(btnAddPlaylist);
+
+    mainLayout->addWidget(lblTitle);
+    mainLayout->addWidget(playlistsListWidget);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromPlaylists, &QPushButton::clicked, this, &MainWindow::showListenerDashboardPage);
+
+    connect(btnAddPlaylist, &QPushButton::clicked, this, [this]() {
+        bool ok;
+        QString playlistName = QInputDialog::getText(
+            this,
+            "Add Playlist",
+            "Enter playlist name:",
+            QLineEdit::Normal,
+            "",
+            &ok
+            );
+
+        playlistName = playlistName.trimmed();
+
+        if (!ok) return;
+
+        if (playlistName.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Playlist name cannot be empty.");
+            return;
+        }
+
+        if (Controller::getInstance().addMyPlaylist(playlistName.toStdString())) {
+            QMessageBox::information(this, "Success", "Playlist created successfully.");
+            loadPlaylists();
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to create playlist.");
+        }
+    });
+
+    connect(playlistsListWidget, &QListWidget::itemClicked, this, &MainWindow::onPlaylistItemClicked);
+}
+
+
+// --- Playlist Songs Page ---
+void MainWindow::createPlaylistSongsPage() {
+    playlistSongsPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(playlistSongsPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    lblPlaylistSongsTitle = new QLabel("Playlist", playlistSongsPage);
+    lblPlaylistSongsTitle->setAlignment(Qt::AlignLeft);
+    lblPlaylistSongsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
+
+    playlistSongsContainer = new QWidget(playlistSongsPage);
+    playlistSongsLayout = new QVBoxLayout(playlistSongsContainer);
+    playlistSongsLayout->setSpacing(10);
+    playlistSongsLayout->setContentsMargins(0, 0, 0, 0);
+
+    playlistSongsScrollArea = new QScrollArea(playlistSongsPage);
+    playlistSongsScrollArea->setWidgetResizable(true);
+    playlistSongsScrollArea->setWidget(playlistSongsContainer);
+    playlistSongsScrollArea->setFrameShape(QFrame::NoFrame);
+
+    btnBackFromPlaylistSongs = new QPushButton("Back", playlistSongsPage);
+    btnEditPlaylist = new QPushButton("Edit Playlist", playlistSongsPage);
+    btnDeletePlaylist = new QPushButton("Delete Playlist", playlistSongsPage);
+
+    btnBackFromPlaylistSongs->setMinimumHeight(40);
+    btnEditPlaylist->setMinimumHeight(40);
+    btnDeletePlaylist->setMinimumHeight(40);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->addWidget(btnBackFromPlaylistSongs);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(btnEditPlaylist);
+    bottomLayout->addWidget(btnDeletePlaylist);
+
+    mainLayout->addWidget(lblPlaylistSongsTitle);
+    mainLayout->addWidget(playlistSongsScrollArea);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromPlaylistSongs, &QPushButton::clicked, this, &MainWindow::showPlaylistsPage);
+
+    connect(btnDeletePlaylist, &QPushButton::clicked, this, [this]() {
+        if (currentPlaylistIsFavorite || currentPlaylistId == -1)
+            return;
+
+        auto reply = QMessageBox::question(
+            this,
+            "Delete Playlist",
+            "Are you sure you want to delete this playlist?",
+            QMessageBox::Yes | QMessageBox::No
+            );
+
+        if (reply == QMessageBox::Yes) {
+            if (Controller::getInstance().removePlaylist(currentPlaylistId)) {
+                QMessageBox::information(this, "Success", "Playlist deleted successfully.");
+                showPlaylistsPage();
+            } else {
+                QMessageBox::warning(this, "Error", "Failed to delete playlist.");
+            }
+        }
+    });
+
+    connect(btnEditPlaylist, &QPushButton::clicked, this, [this]() {
+        if (currentPlaylistIsFavorite || currentPlaylistId == -1)
+            return;
+
+        bool ok;
+        QString newName = QInputDialog::getText(
+            this,
+            "Edit Playlist",
+            "Enter new playlist name:",
+            QLineEdit::Normal,
+            lblPlaylistSongsTitle->text(),
+            &ok
+            );
+
+        newName = newName.trimmed();
+
+        if (!ok || newName.isEmpty())
+            return;
+
+        if (Controller::getInstance().editPlaylist(currentPlaylistId, newName.toStdString())) {
+            QMessageBox::information(this, "Success", "Playlist updated successfully.");
+            currentPlaylistName = newName;
+            loadPlaylistSongsPage(currentPlaylistId, currentPlaylistName, false);
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to update playlist.");
+        }
+    });
+}
+
+
 // --- Navigation ---
 void MainWindow::showWelcomePage() {
     stackedWidget->setCurrentWidget(welcomePage);
@@ -371,6 +610,14 @@ void MainWindow::showArtistDashboardPage() {
     stackedWidget->setCurrentWidget(artistDashboardPage);
 }
 
+void MainWindow::showListenerDashboardPage() {
+    Listener* currentListener = Controller::getInstance().getCurrentListener();
+    if (currentListener != nullptr) {
+        btnListenerName->setText(QString::fromStdString(currentListener->getFullName()));
+    }
+    stackedWidget->setCurrentWidget(listenerDashboardPage);
+}
+
 void MainWindow::showArtistProfilePage() {
     Artist* currentArtist = Controller::getInstance().getCurrentAccount();
     if (currentArtist != nullptr) {
@@ -386,6 +633,15 @@ void MainWindow::showArtistProfilePage() {
 
 void MainWindow::showCollectionPage() {
     stackedWidget->setCurrentWidget(collectionPage);
+}
+
+void MainWindow::showPlaylistsPage() {
+    loadPlaylists();
+    stackedWidget->setCurrentWidget(playlistsPage);
+}
+
+void MainWindow::showPlaylistSongsPage() {
+    stackedWidget->setCurrentWidget(playlistSongsPage);
 }
 
 
@@ -429,6 +685,108 @@ void MainWindow::loadCollectionPage(const QString &title, const std::vector<Song
 
     songsLayout->addStretch();
     showCollectionPage();
+}
+
+
+// --- Playlist Helpers ---
+void MainWindow::clearPlaylistSongsList() {
+    QLayoutItem *item;
+    while ((item = playlistSongsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+}
+
+QPushButton* MainWindow::createPlaylistSongItemButton(const QString &songTitle, int songID) {
+    QPushButton *btnSong = new QPushButton(songTitle, playlistSongsPage);
+    btnSong->setMinimumHeight(45);
+    btnSong->setProperty("songID", songID);
+    btnSong->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+        "QPushButton:hover { background-color: #f2f2f2; }"
+        );
+    return btnSong;
+}
+
+void MainWindow::loadPlaylists() {
+    playlistsListWidget->clear();
+
+    QListWidgetItem *favoriteItem = new QListWidgetItem("Favorite");
+    favoriteItem->setData(Qt::UserRole, -1);
+    playlistsListWidget->addItem(favoriteItem);
+
+    auto playlistsOpt = Controller::getInstance().myPlaylist();
+    if (!playlistsOpt.has_value())
+        return;
+
+    const std::vector<Playlist> &playlists = playlistsOpt.value();
+
+    for (const Playlist &playlist : playlists) {
+        QListWidgetItem *item = new QListWidgetItem(QString::fromStdString(playlist.getName()));
+        item->setData(Qt::UserRole, playlist.getListID());
+        playlistsListWidget->addItem(item);
+    }
+}
+
+void MainWindow::loadPlaylistSongsPage(int playlistId, const QString &playlistName, bool isFavorite) {
+    currentPlaylistId = playlistId;
+    currentPlaylistName = playlistName;
+    currentPlaylistIsFavorite = isFavorite;
+
+    lblPlaylistSongsTitle->setText(playlistName);
+
+    btnEditPlaylist->setVisible(!isFavorite);
+    btnDeletePlaylist->setVisible(!isFavorite);
+
+    clearPlaylistSongsList();
+
+    std::optional<std::vector<Song>> songsOpt;
+
+    if (isFavorite)
+        songsOpt = Controller::getInstance().myLikeSong();
+    else
+        songsOpt = Controller::getInstance().showSongsInPlaylist(playlistId);
+
+    if (!songsOpt.has_value()) {
+        QLabel *lblEmpty = new QLabel("No songs found.", playlistSongsPage);
+        lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+        playlistSongsLayout->addWidget(lblEmpty);
+        playlistSongsLayout->addStretch();
+        showPlaylistSongsPage();
+        return;
+    }
+
+    const std::vector<Song> &songs = songsOpt.value();
+
+    if (songs.empty()) {
+        QLabel *lblEmpty = new QLabel("No songs found.", playlistSongsPage);
+        lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+        playlistSongsLayout->addWidget(lblEmpty);
+    } else {
+        for (const Song &song : songs) {
+            playlistSongsLayout->addWidget(
+                createPlaylistSongItemButton(
+                    QString::fromStdString(song.getName()),
+                    song.getSongID()
+                    )
+                );
+        }
+    }
+
+    playlistSongsLayout->addStretch();
+    showPlaylistSongsPage();
+}
+
+void MainWindow::onPlaylistItemClicked(QListWidgetItem *item) {
+    if (!item) return;
+
+    int playlistId = item->data(Qt::UserRole).toInt();
+    QString playlistName = item->text();
+
+    if (playlistId == -1)
+        loadPlaylistSongsPage(-1, "Favorite", true);
+    else
+        loadPlaylistSongsPage(playlistId, playlistName, false);
 }
 
 
@@ -778,7 +1136,12 @@ void MainWindow::handleLogin() {
 
     if (Controller::getInstance().login(user.toStdString(), pass.toStdString())) {
         QMessageBox::information(this, "Success", "Welcome back!");
-        showArtistDashboardPage();
+
+        if (Controller::getInstance().getCurrentListener() != nullptr) {
+            showListenerDashboardPage();
+        } else {
+            showArtistDashboardPage();
+        }
     } else {
         QMessageBox::critical(this, "Login Failed", "Invalid credentials.");
     }
@@ -910,6 +1273,3 @@ void MainWindow::handleAddSong() {
         }
     }
 }
-
-
-

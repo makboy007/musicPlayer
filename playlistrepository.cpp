@@ -90,5 +90,19 @@ vector<Playlist> PlaylistRepository::Playlists(int listenerID) const
     return result;
 }
 
+bool PlaylistRepository::updatePlaylistName(int playlistId, const string& newName)
+{
+    for (auto &playlist : playlists)
+    {
+        if (playlist.getListID() == playlistId)
+        {
+            playlist.setName(newName);
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 

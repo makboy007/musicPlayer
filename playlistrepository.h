@@ -27,6 +27,7 @@ public:
     vector<Playlist> Playlists(int listenerID) const;
 
     const vector<Playlist>& getAll() const { return playlists; }
+    bool updatePlaylistName(int playlistId, const string& newName);
 };
 
 #endif // PLAYLISTREPOSITORY_H

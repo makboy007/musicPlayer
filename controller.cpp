@@ -1,6 +1,7 @@
 #include "Controller.h"
 #include "ListenerRepository.h"
 #include "ArtistRepository.h"
+#include"playlistrepository.h"
 #include "IdGenerator.h"
 #include "DataManager.h"
 using namespace std;
@@ -217,13 +218,81 @@ bool Controller:: removeArtist()
     return false;
 }
 
+Listener* Controller::getCurrentListener()
+{
+    if (currentUserId == -1) return nullptr;
 
+    auto& listeners = ListenerRepository::getInstance().getAll();
 
+    for (const auto& listener : listeners)
+    {
+        if (listener.getID() == currentUserId)
+        {
+            return const_cast<Listener*>(&listener);
+        }
+    }
+    return nullptr;
+}
 
+optional<vector<Playlist>> Controller:: myPlaylist()
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return PlaylistRepository::getInstance().Playlists(currentUserId);
+    }
+    return nullopt;
+}
 
+bool Controller::addMyPlaylist(string namePlaylist)
+{
+    if(currentUserId!=-1&&!isCurrentArtist)
+    {
+        Playlist newPlaylist(namePlaylist,currentUserId);
+        PlaylistRepository::getInstance().save(newPlaylist);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
 
+bool Controller:: removePlaylist(int PlaylistID)
+{
+    if(currentUserId!=-1&&!isCurrentArtist)
+    {
+        PlaylistRepository::getInstance().remove(PlaylistID);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
 
+bool Controller:: editPlaylist(int PlaylistID ,string newName)
+{
+    if (currentUserId != -1 && !isCurrentArtist)
+    {
+        if (PlaylistRepository::getInstance().updatePlaylistName(PlaylistID, newName))
+        {
+            DataManager::saveAll();
+            return true;
+        }
+    }
+    return false;
+}
 
+optional<vector<Song>> Controller:: showSongsInPlaylist(int PlaylistID)
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return SongRepository::getInstance().getByPlaylist(PlaylistID);
+    }
+    return nullopt;
+}
 
-
-
+optional<vector<Song>> Controller:: myLikeSong()
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return SongRepository::getInstance().getByLikedSongs(currentUserId);
+    }
+    return nullopt;
+}
