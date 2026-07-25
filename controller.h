@@ -39,7 +39,8 @@ public:
    optional<vector<Song>> mySingleSong();
    optional<vector<Song>> showSongsInAlbum(int albumID);
    bool removeSong(int songID);
-   bool editSong(int songID ,string nameSong,int year,string genre,int albumID);
+   bool editSong(int songID, string nameSong, int year, string genre, int albumID);
+   optional<Song> getSong(int songID);
 };
 
 #endif

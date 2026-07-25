@@ -26,6 +26,7 @@ public:
     }
 
     const vector<Song>& getAll() const { return songs; }
+    bool updateSong(int songID, string nameSong, int year, string genre, int albumID);
 };
 
 #endif // SONGREPOSITORY_H

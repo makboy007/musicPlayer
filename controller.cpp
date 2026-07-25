@@ -146,18 +146,21 @@ bool Controller:: editAlbum(int albumID,string newName)
     return false;
 }
 
-bool Controller:: editSong(int songID ,string nameSong,int year,string genre,int albumID)
+bool Controller::editSong(int songID, string nameSong, int year, string genre, int albumID)
 {
-    if(currentUserId!=-1&&isCurrentArtist)
+    if (currentUserId != -1 && isCurrentArtist)
     {
-        SongRepository::getInstance().search(songID)->edit(nameSong,year,genre,currentUserId,albumID);
+        return SongRepository::getInstance().updateSong(songID, nameSong, year, genre, albumID);
         DataManager::saveAll();
         return true;
     }
     return false;
 }
 
-
+optional<Song> Controller::getSong(int songID)
+{
+    return SongRepository::getInstance().search(songID);
+}
 
 
 

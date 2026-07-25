@@ -123,7 +123,18 @@ vector<Song> SongRepository::getByLikedSongs(int listenerID) {
     return result;
 }
 
-
+bool SongRepository::updateSong(int songID, string nameSong, int year, string genre, int albumID)
+{
+    for (auto &song : songs)
+    {
+        if (song.getSongID() == songID)
+        {
+            song.edit(nameSong, year, genre, song.getAlbumID(), albumID);
+            return true;
+        }
+    }
+    return false;
+}
 
 
 

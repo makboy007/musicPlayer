@@ -17,6 +17,8 @@
 #include <optional>
 #include <vector>
 
+#include "Song.h"
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -74,8 +76,8 @@ private:
     QVBoxLayout *songsLayout = nullptr;
     QScrollArea *songsScrollArea = nullptr;
     QPushButton *btnBackFromCollection = nullptr;
-    QPushButton *btnEditAlbum = nullptr;   // دکمه ویرایش آلبوم
-    QPushButton *btnDeleteAlbum = nullptr; // دکمه حذف آلبوم
+    QPushButton *btnEditAlbum = nullptr;
+    QPushButton *btnDeleteAlbum = nullptr;
 
 private:
     // Page creators
@@ -96,8 +98,8 @@ private:
 
     // Collection helpers
     void clearSongsList();
-    QPushButton* createSongItemButton(const QString &songTitle);
-    void loadCollectionPage(const QString &title, const QStringList &songs);
+    QPushButton* createSongItemButton(const QString &songTitle, int songID);
+    void loadCollectionPage(const QString &title, const std::vector<Song> &songs);
 
     // Dashboard helpers
     void clearAlbumsList();
@@ -113,17 +115,20 @@ private:
     void handleAddSong();
     void handleSinglesClicked();
     void handleAlbumClicked(int albumId, const QString &albumTitle);
-    void handleDeleteAlbum(); // هندلر حذف آلبوم
-    void handleEditAlbum();   // هندلر ویرایش آلبوم
+    void handleDeleteAlbum();
+    void handleEditAlbum();
 
-    // Dynamic slot for album buttons
     void onAlbumButtonClicked();
+    void onSongButtonClicked();
+    void handleSongClicked(int songID);
+    void handleEditSong(const Song &song);
 
 private:
-    int currentAlbumId = -1; // نگه داشتن آیدی آلبومِ فعال
+    int currentAlbumId = -1;
 };
 
 #endif // MAINWINDOW_H
+
 
 
 

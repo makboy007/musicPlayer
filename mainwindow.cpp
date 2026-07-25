@@ -342,27 +342,32 @@ void MainWindow::clearSongsList() {
     }
 }
 
-QPushButton* MainWindow::createSongItemButton(const QString &songTitle) {
+QPushButton* MainWindow::createSongItemButton(const QString &songTitle, int songID) {
     QPushButton *btnSong = new QPushButton(songTitle, collectionPage);
     btnSong->setMinimumHeight(45);
+    btnSong->setProperty("songID", songID);
     btnSong->setStyleSheet(
         "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
         "QPushButton:hover { background-color: #f2f2f2; }"
         );
+    connect(btnSong, &QPushButton::clicked, this, &MainWindow::onSongButtonClicked);
     return btnSong;
 }
 
-void MainWindow::loadCollectionPage(const QString &title, const QStringList &songs) {
+void MainWindow::loadCollectionPage(const QString &title, const std::vector<Song> &songs) {
     lblCollectionTitle->setText(title);
     clearSongsList();
 
-    if (songs.isEmpty()) {
+    if (songs.empty()) {
         QLabel *lblEmpty = new QLabel("No songs found.", collectionPage);
         lblEmpty->setStyleSheet("color: gray; font-style: italic;");
         songsLayout->addWidget(lblEmpty);
     } else {
-        for (const QString &song : songs) {
-            songsLayout->addWidget(createSongItemButton(song));
+        for (const Song &song : songs) {
+            songsLayout->addWidget(createSongItemButton(
+                QString::fromStdString(song.getName()),
+                song.getSongID()
+                ));
         }
     }
 
@@ -430,15 +435,11 @@ void MainWindow::handleAlbumClicked(int albumId, const QString &albumTitle) {
     btnEditAlbum->setVisible(true);
     btnDeleteAlbum->setVisible(true);
 
-    QStringList songsList;
     auto songsOpt = Controller::getInstance().showSongsInAlbum(albumId);
-
+    std::vector<Song> songsList;
     if (songsOpt.has_value()) {
-        for (const Song &song : songsOpt.value()) {
-            songsList << QString::fromStdString(song.getName());
-        }
+        songsList = songsOpt.value();
     }
-
     loadCollectionPage(albumTitle, songsList);
 }
 
@@ -449,18 +450,127 @@ void MainWindow::handleSinglesClicked() {
     btnDeleteAlbum->setVisible(false);
 
     auto songsOpt = Controller::getInstance().mySingleSong();
-    QStringList songsList;
-
+    std::vector<Song> songsList;
     if (songsOpt.has_value()) {
-        for (const auto& song : songsOpt.value()) {
-            songsList << QString::fromStdString(song.getName());
-        }
+        songsList = songsOpt.value();
     }
-
     loadCollectionPage("Singles", songsList);
 }
 
-// --- Handlers ---
+// --- Song Details, Edit & Delete Handlers ---
+void MainWindow::onSongButtonClicked() {
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (btn) {
+        int songID = btn->property("songID").toInt();
+        handleSongClicked(songID);
+    }
+}
+
+void MainWindow::handleSongClicked(int songID) {
+    auto songOpt = Controller::getInstance().getSong(songID);
+    if (!songOpt.has_value()) return;
+
+    Song song = songOpt.value();
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("Song Details");
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    layout->addWidget(new QLabel("Name: " + QString::fromStdString(song.getName())));
+    layout->addWidget(new QLabel("Year: " + QString::number(song.getReleaseYear())));
+    layout->addWidget(new QLabel("Genre: " + QString::fromStdString(song.getGenre())));
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    QPushButton *btnEdit = new QPushButton("Edit");
+    QPushButton *btnDelete = new QPushButton("Delete");
+    QPushButton *btnClose = new QPushButton("Close");
+
+    btnLayout->addWidget(btnEdit);
+    btnLayout->addWidget(btnDelete);
+    btnLayout->addWidget(btnClose);
+    layout->addLayout(btnLayout);
+
+    connect(btnClose, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    connect(btnDelete, &QPushButton::clicked, [&]() {
+        if (QMessageBox::question(this, "Delete", "Are you sure you want to delete this song?") == QMessageBox::Yes) {
+            if (Controller::getInstance().removeSong(songID)) {
+                QMessageBox::information(this, "Success", "Song deleted successfully.");
+                dialog.accept();
+                if (currentAlbumId == -1) handleSinglesClicked();
+                else handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
+            }
+        }
+    });
+
+    connect(btnEdit, &QPushButton::clicked, [&]() {
+        dialog.hide();
+        handleEditSong(song);
+        dialog.accept();
+    });
+
+    dialog.exec();
+}
+
+void MainWindow::handleEditSong(const Song& song) {
+    QDialog dialog(this);
+    dialog.setWindowTitle("Edit Song");
+
+    QFormLayout *form = new QFormLayout(&dialog);
+
+    QLineEdit *nameEdit = new QLineEdit(QString::fromStdString(song.getName()), &dialog);
+    QSpinBox *yearEdit = new QSpinBox(&dialog);
+    yearEdit->setRange(1900, 2100);
+    yearEdit->setValue(song.getReleaseYear());
+
+    QLineEdit *genreEdit = new QLineEdit(QString::fromStdString(song.getGenre()), &dialog);
+
+    QComboBox *albumCombo = new QComboBox(&dialog);
+    albumCombo->addItem("None (Single)", 0);
+
+    auto albumsOpt = Controller::getInstance().myAlbums();
+    if (albumsOpt.has_value()) {
+        for (const auto &album : albumsOpt.value()) {
+            albumCombo->addItem(QString::fromStdString(album.getName()), album.getAlbumID());
+        }
+    }
+
+    // انتخاب آلبوم فعلی در کمبوباکس
+    int index = albumCombo->findData(song.getAlbumID());
+    if (index != -1) albumCombo->setCurrentIndex(index);
+
+    form->addRow("Song Name:", nameEdit);
+    form->addRow("Release Year:", yearEdit);
+    form->addRow("Genre:", genreEdit);
+    form->addRow("Album:", albumCombo);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, &dialog);
+    form->addRow(buttonBox);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        string newName = nameEdit->text().trimmed().toStdString();
+        int newYear = yearEdit->value();
+        string newGenre = genreEdit->text().trimmed().toStdString();
+        int newAlbumID = albumCombo->currentData().toInt();
+
+        if (newName.empty()) {
+            QMessageBox::warning(this, "Error", "Song name cannot be empty.");
+            return;
+        }
+
+        if (Controller::getInstance().editSong(song.getSongID(), newName, newYear, newGenre, newAlbumID)) {
+            QMessageBox::information(this, "Success", "Song updated successfully.");
+            // رفرش لیست
+            if (currentAlbumId == -1) handleSinglesClicked();
+            else handleAlbumClicked(currentAlbumId, lblCollectionTitle->text());
+        }
+    }
+}
+
+// --- Other Handlers ---
 void MainWindow::handleDeleteAlbum() {
     if (currentAlbumId == -1) return;
 
@@ -507,29 +617,13 @@ void MainWindow::handleEditAlbum() {
 
     if (result) {
         QMessageBox::information(this, "Success", "Album updated successfully.");
-
-        // عنوان فعلی صفحه
         lblCollectionTitle->setText(newTitle);
-
-        // داشبورد از نو ساخته شود تا دکمه آلبوم با نام جدید ساخته شود
         refreshArtistDashboard();
-
-        // لیست آهنگ‌های همین آلبوم دوباره با نام جدید لود شود
-        QStringList songsList;
-        auto songsOpt = Controller::getInstance().showSongsInAlbum(currentAlbumId);
-
-        if (songsOpt.has_value()) {
-            for (const Song &song : songsOpt.value()) {
-                songsList << QString::fromStdString(song.getName());
-            }
-        }
-
-        loadCollectionPage(newTitle, songsList);
+        handleAlbumClicked(currentAlbumId, newTitle);
     } else {
         QMessageBox::warning(this, "Error", "Failed to update album.");
     }
 }
-
 
 void MainWindow::handleLogin() {
     QString user = txtLoginUser->text();
