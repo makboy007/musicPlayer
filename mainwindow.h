@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <optional>
 #include <vector>
 #include <QTextEdit>
 class QWidget;
@@ -15,6 +14,7 @@ class QVBoxLayout;
 class QScrollArea;
 class QListWidget;
 class QListWidgetItem;
+class QComboBox;
 
 class Song;
 class Album;
@@ -73,12 +73,18 @@ private:
     QPushButton* createSongItemButton(const QString &songTitle, int songID);
     void refreshArtistDashboard();
     void loadCollectionPage(const QString &title, const std::vector<Song> &songs);
+    void applyCollectionFilters();
 
     // --- Helpers: playlists ---
     void clearPlaylistSongsList();
     QPushButton* createPlaylistSongItemButton(const QString &songTitle, int songID);
     void loadPlaylists();
     void loadPlaylistSongsPage(int playlistId, const QString &playlistName, bool isFavorite);
+    void applyPlaylistSongsFilters();
+
+    // --- Helpers: browsing another artist's songs ---
+    void applyArtistSongsFilters();
+    std::vector<Song> sortSongsByCombo(std::vector<Song> songs, QComboBox *combo);
 
     // --- Song / album handlers ---
     void handleAlbumClicked(int albumId, const QString &albumTitle);
@@ -160,6 +166,11 @@ private:
     QPushButton *btnBackFromCollection;
     QPushButton *btnEditAlbum;
     QPushButton *btnDeleteAlbum;
+    QLineEdit *collectionSearchEdit = nullptr;
+    QLineEdit *collectionGenreFilterEdit = nullptr;
+    QLineEdit *collectionYearFilterEdit = nullptr;
+    QComboBox *collectionSortCombo = nullptr;
+    std::vector<Song> currentCollectionSongs;
 
     // --- Playlists Page ---
     QWidget *playlistsPage;
@@ -176,6 +187,11 @@ private:
     QPushButton *btnBackFromPlaylistSongs;
     QPushButton *btnEditPlaylist;
     QPushButton *btnDeletePlaylist;
+    QLineEdit *playlistSongsSearchEdit = nullptr;
+    QLineEdit *playlistSongsGenreFilterEdit = nullptr;
+    QLineEdit *playlistSongsYearFilterEdit = nullptr;
+    QComboBox *playlistSongsSortCombo = nullptr;
+    std::vector<Song> currentPlaylistSongsList;
 
     // --- Artist Browser Page ---
     QWidget *artistBrowserPage;
@@ -196,6 +212,11 @@ private:
     QWidget *artistSongsContainer;
     QVBoxLayout *artistSongsLayout;
     QPushButton *btnBackFromArtistSongs;
+    QLineEdit *artistSongsSearchEdit = nullptr;
+    QLineEdit *artistSongsGenreFilterEdit = nullptr;
+    QLineEdit *artistSongsYearFilterEdit = nullptr;
+    QComboBox *artistSongsSortCombo = nullptr;
+    std::vector<Song> currentArtistBrowseSongs;
 
     // --- State ---
     int currentAlbumId;

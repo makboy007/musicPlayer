@@ -4,7 +4,19 @@
 #include"playlistrepository.h"
 #include "IdGenerator.h"
 #include "DataManager.h"
+#include <algorithm>
+#include <cctype>
 using namespace std;
+
+namespace {
+string toLowerCopy(const string& s)
+{
+    string result = s;
+    transform(result.begin(), result.end(), result.begin(),
+              [](unsigned char c) { return static_cast<char>(tolower(c)); });
+    return result;
+}
+}
 
 bool Controller::signUp(string fullName, string username, string password, string bio, bool isArtistRole)
 {
@@ -39,7 +51,7 @@ bool Controller::login(string username, string password)
     {
         currentUserId = listener->getID();
         isCurrentArtist = false;
-        return true; // لاگین موفق به عنوان شنونده
+        return true;
     }
 
     auto artist = ArtistRepository::getInstance().searchByUserName(username);
@@ -47,7 +59,7 @@ bool Controller::login(string username, string password)
     {
         currentUserId = artist->getID();
         isCurrentArtist = true;
-        return true; // لاگین موفق به عنوان هنرمند
+        return true;
     }
     return false;
 }
@@ -410,6 +422,64 @@ bool Controller:: removeListener()
         return true;
     }
     return false;
+}
+
+
+vector<Song> Controller::filterSongs(const vector<Song>& songs, const string& nameQuery, const string& genre, int year)
+{
+    vector<Song> result;
+    string lowerQuery = toLowerCopy(nameQuery);
+    string lowerGenre = toLowerCopy(genre);
+
+    for (const Song& song : songs)
+    {
+        if (!lowerQuery.empty() && toLowerCopy(song.getName()).find(lowerQuery) == string::npos)
+        {
+            continue;
+        }
+        if (!lowerGenre.empty() && toLowerCopy(song.getGenre()).find(lowerGenre) == string::npos)
+        {
+            continue;
+        }
+        if (year != -1 && song.getReleaseYear() != year)
+        {
+            continue;
+        }
+        result.push_back(song);
+    }
+    return result;
+}
+
+vector<Song> Controller::sortSongsByName(vector<Song> songs, bool ascending)
+{
+    sort(songs.begin(), songs.end(), [ascending](const Song& a, const Song& b) {
+        return ascending ? (a.getName() < b.getName()) : (a.getName() > b.getName());
+    });
+    return songs;
+}
+
+vector<Song> Controller::sortSongsByYear(vector<Song> songs, bool ascending)
+{
+    sort(songs.begin(), songs.end(), [ascending](const Song& a, const Song& b) {
+        return ascending ? (a.getReleaseYear() < b.getReleaseYear()) : (a.getReleaseYear() > b.getReleaseYear());
+    });
+    return songs;
+}
+
+vector<Album> Controller::sortAlbumsByName(vector<Album> albums, bool ascending)
+{
+    sort(albums.begin(), albums.end(), [ascending](const Album& a, const Album& b) {
+        return ascending ? (a.getName() < b.getName()) : (a.getName() > b.getName());
+    });
+    return albums;
+}
+
+vector<Playlist> Controller::sortPlaylistsByName(vector<Playlist> playlists, bool ascending)
+{
+    sort(playlists.begin(), playlists.end(), [ascending](const Playlist& a, const Playlist& b) {
+        return ascending ? (a.getName() < b.getName()) : (a.getName() > b.getName());
+    });
+    return playlists;
 }
 
 

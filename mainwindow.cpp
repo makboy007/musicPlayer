@@ -1,10 +1,7 @@
 #include "mainwindow.h"
 #include "Controller.h"
-#include "Song.h"
-#include "Album.h"
-#include "Artist.h"
-#include "Listener.h"
-#include "Playlist.h"
+
+#include "DataManager.h"
 
 #include <QMessageBox>
 #include <QApplication>
@@ -35,6 +32,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
 
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
+
+
+    DataManager::loadAll();
 
     createWelcomePage();
     createLoginPage();
@@ -359,7 +359,7 @@ void MainWindow::createListenerProfilePage()
     listenerProfileBiographyEdit->setPlaceholderText("Enter biography...");
     listenerProfileBiographyEdit->setFixedHeight(100);
 
-    listenerProfilePasswordEdit->setEchoMode(QLineEdit::Normal); // طبق ترجیح فعلی پروژه
+    listenerProfilePasswordEdit->setEchoMode(QLineEdit::Normal);
 
     formLayout->addRow("Full Name:", listenerProfileFullNameEdit);
     formLayout->addRow("Username:", listenerProfileUsernameEdit);
@@ -451,6 +451,35 @@ void MainWindow::createCollectionPage() {
     lblCollectionTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
     lblCollectionTitle->setAlignment(Qt::AlignLeft);
 
+    // --- Search / Filter / Sort bar ---
+    collectionSearchEdit = new QLineEdit(collectionPage);
+    collectionSearchEdit->setPlaceholderText("Search by name...");
+
+    collectionGenreFilterEdit = new QLineEdit(collectionPage);
+    collectionGenreFilterEdit->setPlaceholderText("Filter by genre...");
+
+    collectionYearFilterEdit = new QLineEdit(collectionPage);
+    collectionYearFilterEdit->setPlaceholderText("Year...");
+    collectionYearFilterEdit->setMaximumWidth(80);
+
+    collectionSortCombo = new QComboBox(collectionPage);
+    collectionSortCombo->addItem("Default order");
+    collectionSortCombo->addItem("Name (A-Z)");
+    collectionSortCombo->addItem("Name (Z-A)");
+    collectionSortCombo->addItem("Release Year (oldest first)");
+    collectionSortCombo->addItem("Release Year (newest first)");
+
+    QHBoxLayout *filterLayout = new QHBoxLayout();
+    filterLayout->addWidget(collectionSearchEdit);
+    filterLayout->addWidget(collectionGenreFilterEdit);
+    filterLayout->addWidget(collectionYearFilterEdit);
+    filterLayout->addWidget(collectionSortCombo);
+
+    connect(collectionSearchEdit, &QLineEdit::textChanged, this, &MainWindow::applyCollectionFilters);
+    connect(collectionGenreFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyCollectionFilters);
+    connect(collectionYearFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyCollectionFilters);
+    connect(collectionSortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applyCollectionFilters);
+
     songsContainer = new QWidget(collectionPage);
     songsLayout = new QVBoxLayout(songsContainer);
     songsLayout->setSpacing(10);
@@ -480,6 +509,7 @@ void MainWindow::createCollectionPage() {
     bottomLayout->addWidget(btnDeleteAlbum);
 
     mainLayout->addWidget(lblCollectionTitle);
+    mainLayout->addLayout(filterLayout);
     mainLayout->addWidget(songsScrollArea);
     mainLayout->addLayout(bottomLayout);
 
@@ -566,6 +596,35 @@ void MainWindow::createPlaylistSongsPage() {
     lblPlaylistSongsTitle->setAlignment(Qt::AlignLeft);
     lblPlaylistSongsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
 
+    // --- Search / Filter / Sort bar ---
+    playlistSongsSearchEdit = new QLineEdit(playlistSongsPage);
+    playlistSongsSearchEdit->setPlaceholderText("Search by name...");
+
+    playlistSongsGenreFilterEdit = new QLineEdit(playlistSongsPage);
+    playlistSongsGenreFilterEdit->setPlaceholderText("Filter by genre...");
+
+    playlistSongsYearFilterEdit = new QLineEdit(playlistSongsPage);
+    playlistSongsYearFilterEdit->setPlaceholderText("Year...");
+    playlistSongsYearFilterEdit->setMaximumWidth(80);
+
+    playlistSongsSortCombo = new QComboBox(playlistSongsPage);
+    playlistSongsSortCombo->addItem("Default order");
+    playlistSongsSortCombo->addItem("Name (A-Z)");
+    playlistSongsSortCombo->addItem("Name (Z-A)");
+    playlistSongsSortCombo->addItem("Release Year (oldest first)");
+    playlistSongsSortCombo->addItem("Release Year (newest first)");
+
+    QHBoxLayout *filterLayout = new QHBoxLayout();
+    filterLayout->addWidget(playlistSongsSearchEdit);
+    filterLayout->addWidget(playlistSongsGenreFilterEdit);
+    filterLayout->addWidget(playlistSongsYearFilterEdit);
+    filterLayout->addWidget(playlistSongsSortCombo);
+
+    connect(playlistSongsSearchEdit, &QLineEdit::textChanged, this, &MainWindow::applyPlaylistSongsFilters);
+    connect(playlistSongsGenreFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyPlaylistSongsFilters);
+    connect(playlistSongsYearFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyPlaylistSongsFilters);
+    connect(playlistSongsSortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applyPlaylistSongsFilters);
+
     playlistSongsContainer = new QWidget(playlistSongsPage);
     playlistSongsLayout = new QVBoxLayout(playlistSongsContainer);
     playlistSongsLayout->setSpacing(10);
@@ -591,6 +650,7 @@ void MainWindow::createPlaylistSongsPage() {
     bottomLayout->addWidget(btnDeletePlaylist);
 
     mainLayout->addWidget(lblPlaylistSongsTitle);
+    mainLayout->addLayout(filterLayout);
     mainLayout->addWidget(playlistSongsScrollArea);
     mainLayout->addLayout(bottomLayout);
 
@@ -741,14 +801,60 @@ QPushButton* MainWindow::createSongItemButton(const QString &songTitle, int song
 
 void MainWindow::loadCollectionPage(const QString &title, const std::vector<Song> &songs) {
     lblCollectionTitle->setText(title);
+    currentCollectionSongs = songs;
+
+    // پاک کردن فیلترهای قبلی؛ سیگنال‌ها موجب فراخوانی خودکار applyCollectionFilters می‌شوند
+    collectionSearchEdit->blockSignals(true);
+    collectionGenreFilterEdit->blockSignals(true);
+    collectionYearFilterEdit->blockSignals(true);
+    collectionSortCombo->blockSignals(true);
+    collectionSearchEdit->clear();
+    collectionGenreFilterEdit->clear();
+    collectionYearFilterEdit->clear();
+    collectionSortCombo->setCurrentIndex(0);
+    collectionSearchEdit->blockSignals(false);
+    collectionGenreFilterEdit->blockSignals(false);
+    collectionYearFilterEdit->blockSignals(false);
+    collectionSortCombo->blockSignals(false);
+
+    applyCollectionFilters();
+    showCollectionPage();
+}
+
+std::vector<Song> MainWindow::sortSongsByCombo(std::vector<Song> songs, QComboBox *combo) {
+    switch (combo->currentIndex()) {
+    case 1: return Controller::sortSongsByName(songs, true);
+    case 2: return Controller::sortSongsByName(songs, false);
+    case 3: return Controller::sortSongsByYear(songs, true);
+    case 4: return Controller::sortSongsByYear(songs, false);
+    default: return songs; // Default order: as stored
+    }
+}
+
+void MainWindow::applyCollectionFilters() {
     clearSongsList();
 
-    if (songs.empty()) {
+    QString query = collectionSearchEdit->text().trimmed();
+    QString genre = collectionGenreFilterEdit->text().trimmed();
+    QString yearText = collectionYearFilterEdit->text().trimmed();
+    int year = -1;
+    if (!yearText.isEmpty()) {
+        bool ok;
+        int parsedYear = yearText.toInt(&ok);
+        if (ok) year = parsedYear;
+    }
+
+    std::vector<Song> filtered = Controller::filterSongs(
+        currentCollectionSongs, query.toStdString(), genre.toStdString(), year
+        );
+    filtered = sortSongsByCombo(filtered, collectionSortCombo);
+
+    if (filtered.empty()) {
         QLabel *lblEmpty = new QLabel("No songs found.", collectionPage);
         lblEmpty->setStyleSheet("color: gray; font-style: italic;");
         songsLayout->addWidget(lblEmpty);
     } else {
-        for (const Song &song : songs) {
+        for (const Song &song : filtered) {
             songsLayout->addWidget(createSongItemButton(
                 QString::fromStdString(song.getName()),
                 song.getSongID()
@@ -757,7 +863,6 @@ void MainWindow::loadCollectionPage(const QString &title, const std::vector<Song
     }
 
     songsLayout->addStretch();
-    showCollectionPage();
 }
 
 
@@ -796,7 +901,7 @@ void MainWindow::loadPlaylists() {
     if (!playlistsOpt.has_value())
         return;
 
-    const std::vector<Playlist> &playlists = playlistsOpt.value();
+    std::vector<Playlist> playlists = Controller::sortPlaylistsByName(playlistsOpt.value());
 
     for (const Playlist &playlist : playlists) {
         QListWidgetItem *item = new QListWidgetItem(QString::fromStdString(playlist.getName()));
@@ -815,8 +920,6 @@ void MainWindow::loadPlaylistSongsPage(int playlistId, const QString &playlistNa
     btnEditPlaylist->setVisible(!isFavorite);
     btnDeletePlaylist->setVisible(!isFavorite);
 
-    clearPlaylistSongsList();
-
     std::optional<std::vector<Song>> songsOpt;
 
     if (isFavorite)
@@ -824,23 +927,50 @@ void MainWindow::loadPlaylistSongsPage(int playlistId, const QString &playlistNa
     else
         songsOpt = Controller::getInstance().showSongsInPlaylist(playlistId);
 
-    if (!songsOpt.has_value()) {
-        QLabel *lblEmpty = new QLabel("No songs found.", playlistSongsPage);
-        lblEmpty->setStyleSheet("color: gray; font-style: italic;");
-        playlistSongsLayout->addWidget(lblEmpty);
-        playlistSongsLayout->addStretch();
-        showPlaylistSongsPage();
-        return;
+    currentPlaylistSongsList = songsOpt.has_value() ? songsOpt.value() : std::vector<Song>();
+
+
+    playlistSongsSearchEdit->blockSignals(true);
+    playlistSongsGenreFilterEdit->blockSignals(true);
+    playlistSongsYearFilterEdit->blockSignals(true);
+    playlistSongsSortCombo->blockSignals(true);
+    playlistSongsSearchEdit->clear();
+    playlistSongsGenreFilterEdit->clear();
+    playlistSongsYearFilterEdit->clear();
+    playlistSongsSortCombo->setCurrentIndex(0);
+    playlistSongsSearchEdit->blockSignals(false);
+    playlistSongsGenreFilterEdit->blockSignals(false);
+    playlistSongsYearFilterEdit->blockSignals(false);
+    playlistSongsSortCombo->blockSignals(false);
+
+    applyPlaylistSongsFilters();
+    showPlaylistSongsPage();
+}
+
+void MainWindow::applyPlaylistSongsFilters() {
+    clearPlaylistSongsList();
+
+    QString query = playlistSongsSearchEdit->text().trimmed();
+    QString genre = playlistSongsGenreFilterEdit->text().trimmed();
+    QString yearText = playlistSongsYearFilterEdit->text().trimmed();
+    int year = -1;
+    if (!yearText.isEmpty()) {
+        bool ok;
+        int parsedYear = yearText.toInt(&ok);
+        if (ok) year = parsedYear;
     }
 
-    const std::vector<Song> &songs = songsOpt.value();
+    std::vector<Song> filtered = Controller::filterSongs(
+        currentPlaylistSongsList, query.toStdString(), genre.toStdString(), year
+        );
+    filtered = sortSongsByCombo(filtered, playlistSongsSortCombo);
 
-    if (songs.empty()) {
+    if (filtered.empty()) {
         QLabel *lblEmpty = new QLabel("No songs found.", playlistSongsPage);
         lblEmpty->setStyleSheet("color: gray; font-style: italic;");
         playlistSongsLayout->addWidget(lblEmpty);
     } else {
-        for (const Song &song : songs) {
+        for (const Song &song : filtered) {
             playlistSongsLayout->addWidget(
                 createPlaylistSongItemButton(
                     QString::fromStdString(song.getName()),
@@ -851,7 +981,6 @@ void MainWindow::loadPlaylistSongsPage(int playlistId, const QString &playlistNa
     }
 
     playlistSongsLayout->addStretch();
-    showPlaylistSongsPage();
 }
 
 void MainWindow::onPlaylistItemClicked(QListWidgetItem *item) {
@@ -907,7 +1036,7 @@ void MainWindow::refreshArtistDashboard() {
         return;
     }
 
-    const std::vector<Album> &albums = albumsOpt.value();
+    std::vector<Album> albums = Controller::sortAlbumsByName(albumsOpt.value());
 
     for (const Album &album : albums) {
         albumsLayout->addWidget(createAlbumItemButton(
@@ -1197,7 +1326,7 @@ void MainWindow::handleDeleteListenerProfile()
     if (reply != QMessageBox::Yes)
         return;
 
-   bool ok = Controller::getInstance().removeListener();
+    bool ok = Controller::getInstance().removeListener();
 
     if (ok) {
         QMessageBox::information(this, "Deleted", "Listener profile deleted successfully.");
@@ -1561,7 +1690,7 @@ void MainWindow::showArtistAlbumsPage(int artistID, const QString &artistName) {
     // 2. Fetch and display normal albums
     auto albumsOpt = Controller::getInstance().AlbumsOfArtist(artistID);
     if (albumsOpt.has_value()) {
-        const auto &albums = albumsOpt.value();
+        std::vector<Album> albums = Controller::sortAlbumsByName(albumsOpt.value());
         for (const Album &album : albums) {
             QPushButton *btnAlbum = new QPushButton(QString::fromStdString(album.getName()), artistAlbumsPage);
             btnAlbum->setMinimumHeight(45);
@@ -1596,6 +1725,35 @@ void MainWindow::createArtistSongsPage() {
     lblArtistSongsTitle->setAlignment(Qt::AlignLeft);
     lblArtistSongsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
 
+    // --- Search / Filter / Sort bar ---
+    artistSongsSearchEdit = new QLineEdit(artistSongsPage);
+    artistSongsSearchEdit->setPlaceholderText("Search by name...");
+
+    artistSongsGenreFilterEdit = new QLineEdit(artistSongsPage);
+    artistSongsGenreFilterEdit->setPlaceholderText("Filter by genre...");
+
+    artistSongsYearFilterEdit = new QLineEdit(artistSongsPage);
+    artistSongsYearFilterEdit->setPlaceholderText("Year...");
+    artistSongsYearFilterEdit->setMaximumWidth(80);
+
+    artistSongsSortCombo = new QComboBox(artistSongsPage);
+    artistSongsSortCombo->addItem("Default order");
+    artistSongsSortCombo->addItem("Name (A-Z)");
+    artistSongsSortCombo->addItem("Name (Z-A)");
+    artistSongsSortCombo->addItem("Release Year (oldest first)");
+    artistSongsSortCombo->addItem("Release Year (newest first)");
+
+    QHBoxLayout *filterLayout = new QHBoxLayout();
+    filterLayout->addWidget(artistSongsSearchEdit);
+    filterLayout->addWidget(artistSongsGenreFilterEdit);
+    filterLayout->addWidget(artistSongsYearFilterEdit);
+    filterLayout->addWidget(artistSongsSortCombo);
+
+    connect(artistSongsSearchEdit, &QLineEdit::textChanged, this, &MainWindow::applyArtistSongsFilters);
+    connect(artistSongsGenreFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyArtistSongsFilters);
+    connect(artistSongsYearFilterEdit, &QLineEdit::textChanged, this, &MainWindow::applyArtistSongsFilters);
+    connect(artistSongsSortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applyArtistSongsFilters);
+
     artistSongsContainer = new QWidget(artistSongsPage);
     artistSongsLayout = new QVBoxLayout(artistSongsContainer);
     artistSongsLayout->setSpacing(10);
@@ -1614,6 +1772,7 @@ void MainWindow::createArtistSongsPage() {
     bottomLayout->addStretch();
 
     mainLayout->addWidget(lblArtistSongsTitle);
+    mainLayout->addLayout(filterLayout);
     mainLayout->addWidget(scrollArea);
     mainLayout->addLayout(bottomLayout);
 
@@ -1628,13 +1787,6 @@ void MainWindow::showArtistSongsPage(int albumID, const QString &albumTitle, int
 
     lblArtistSongsTitle->setText(albumTitle);
 
-    // Clear layout
-    QLayoutItem *item;
-    while ((item = artistSongsLayout->takeAt(0)) != nullptr) {
-        if (item->widget()) delete item->widget();
-        delete item;
-    }
-
     std::optional<std::vector<Song>> songsOpt;
     if (albumID == -1) {
         // Fetch Singles
@@ -1644,37 +1796,71 @@ void MainWindow::showArtistSongsPage(int albumID, const QString &albumTitle, int
         songsOpt = Controller::getInstance().showSongsInAlbum(albumID);
     }
 
-    if (songsOpt.has_value()) {
-        const auto &songs = songsOpt.value();
-        if (songs.empty()) {
-            QLabel *lblEmpty = new QLabel("No songs found in this selection.", artistSongsPage);
-            lblEmpty->setStyleSheet("color: gray; font-style: italic;");
-            artistSongsLayout->addWidget(lblEmpty);
-        } else {
-            for (const Song &song : songs) {
-                QPushButton *btnSong = new QPushButton(QString::fromStdString(song.getName()), artistSongsPage);
-                btnSong->setMinimumHeight(45);
-                btnSong->setStyleSheet(
-                    "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
-                    "QPushButton:hover { background-color: #f2f2f2; }"
-                    );
+    currentArtistBrowseSongs = songsOpt.has_value() ? songsOpt.value() : std::vector<Song>();
 
-                int songID = song.getSongID();
-                connect(btnSong, &QPushButton::clicked, this, [this, songID]() {
-                    handleListenerSongClicked(songID);
-                });
 
-                artistSongsLayout->addWidget(btnSong);
-            }
-        }
+    artistSongsSearchEdit->blockSignals(true);
+    artistSongsGenreFilterEdit->blockSignals(true);
+    artistSongsYearFilterEdit->blockSignals(true);
+    artistSongsSortCombo->blockSignals(true);
+    artistSongsSearchEdit->clear();
+    artistSongsGenreFilterEdit->clear();
+    artistSongsYearFilterEdit->clear();
+    artistSongsSortCombo->setCurrentIndex(0);
+    artistSongsSearchEdit->blockSignals(false);
+    artistSongsGenreFilterEdit->blockSignals(false);
+    artistSongsYearFilterEdit->blockSignals(false);
+    artistSongsSortCombo->blockSignals(false);
+
+    applyArtistSongsFilters();
+    stackedWidget->setCurrentWidget(artistSongsPage);
+}
+
+void MainWindow::applyArtistSongsFilters() {
+    QLayoutItem *item;
+    while ((item = artistSongsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+
+    QString query = artistSongsSearchEdit->text().trimmed();
+    QString genre = artistSongsGenreFilterEdit->text().trimmed();
+    QString yearText = artistSongsYearFilterEdit->text().trimmed();
+    int year = -1;
+    if (!yearText.isEmpty()) {
+        bool ok;
+        int parsedYear = yearText.toInt(&ok);
+        if (ok) year = parsedYear;
+    }
+
+    std::vector<Song> filtered = Controller::filterSongs(
+        currentArtistBrowseSongs, query.toStdString(), genre.toStdString(), year
+        );
+    filtered = sortSongsByCombo(filtered, artistSongsSortCombo);
+
+    if (filtered.empty()) {
+        QLabel *lblEmpty = new QLabel("No songs found in this selection.", artistSongsPage);
+        lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+        artistSongsLayout->addWidget(lblEmpty);
     } else {
-        QLabel *lblError = new QLabel("Failed to retrieve songs.", artistSongsPage);
-        lblError->setStyleSheet("color: red;");
-        artistSongsLayout->addWidget(lblError);
+        for (const Song &song : filtered) {
+            QPushButton *btnSong = new QPushButton(QString::fromStdString(song.getName()), artistSongsPage);
+            btnSong->setMinimumHeight(45);
+            btnSong->setStyleSheet(
+                "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+                "QPushButton:hover { background-color: #f2f2f2; }"
+                );
+
+            int songID = song.getSongID();
+            connect(btnSong, &QPushButton::clicked, this, [this, songID]() {
+                handleListenerSongClicked(songID);
+            });
+
+            artistSongsLayout->addWidget(btnSong);
+        }
     }
 
     artistSongsLayout->addStretch();
-    stackedWidget->setCurrentWidget(artistSongsPage);
 }
 
 

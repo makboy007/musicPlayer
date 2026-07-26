@@ -34,28 +34,28 @@ public:
     void logout();
 
     bool addMyAlbum(string nameAlbum);
-   optional<vector<Album>> myAlbums();
+    optional<vector<Album>> myAlbums();
     bool removeAlbum(int albumID);
-   bool editAlbum(int albumID ,string newName);
+    bool editAlbum(int albumID ,string newName);
 
-   bool addmySong(string nameSong,int year,string genre,int albumID);
-   optional<vector<Song>> mySingleSong();
-   optional<vector<Song>> showSongsInAlbum(int albumID);
-   bool removeSong(int songID);
-   bool editSong(int songID, string nameSong, int year, string genre, int albumID);
-   optional<Song> getSong(int songID);
+    bool addmySong(string nameSong,int year,string genre,int albumID);
+    optional<vector<Song>> mySingleSong();
+    optional<vector<Song>> showSongsInAlbum(int albumID);
+    bool removeSong(int songID);
+    bool editSong(int songID, string nameSong, int year, string genre, int albumID);
+    optional<Song> getSong(int songID);
 
-   Artist* getCurrentAccount();
-   bool updateProfile(const string& fullName,const string& username,const string& biography,const string& password);
-   bool removeArtist();
+    Artist* getCurrentAccount();
+    bool updateProfile(const string& fullName,const string& username,const string& biography,const string& password);
+    bool removeArtist();
 
     //---------------------------
-   Listener* getCurrentListener();
-   optional<vector<Playlist>> myPlaylist();
-   bool addMyPlaylist(string namePlaylist);
-   bool removePlaylist(int PlaylistID);
+    Listener* getCurrentListener();
+    optional<vector<Playlist>> myPlaylist();
+    bool addMyPlaylist(string namePlaylist);
+    bool removePlaylist(int PlaylistID);
     bool editPlaylist(int PlaylistID ,string newName);
-   optional<vector<Song>> showSongsInPlaylist(int PlaylistID);
+    optional<vector<Song>> showSongsInPlaylist(int PlaylistID);
     optional<vector<Song>> myLikeSong();
 
     optional<vector<Artist>> showAllArtist();
@@ -68,6 +68,13 @@ public:
 
     bool updateListenerProfile(const string& fullName,const string& username,const string& biography,const string& password);
     bool removeListener();
+
+
+    static vector<Song> filterSongs(const vector<Song>& songs, const string& nameQuery, const string& genre, int year);
+    static vector<Song> sortSongsByName(vector<Song> songs, bool ascending = true);
+    static vector<Song> sortSongsByYear(vector<Song> songs, bool ascending = true);
+    static vector<Album> sortAlbumsByName(vector<Album> albums, bool ascending = true);
+    static vector<Playlist> sortPlaylistsByName(vector<Playlist> playlists, bool ascending = true);
 };
 
 #endif

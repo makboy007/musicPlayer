@@ -6,6 +6,7 @@
 #include "ArtistRepository.h"
 #include "ListenerRepository.h"
 #include "PlaylistRepository.h"
+#include "AlbumRepository.h"
 #include "IdGenerator.h"
 
 using namespace std;
@@ -57,6 +58,12 @@ void DataManager::saveAll() {
         outFile << "SONG|" << s.getSongID() << "|" << s.getName() << "|"
                 << s.getGenre() << "|" << s.getReleaseYear() << "|"
                 << s.getArtistId() << "|" << s.getAlbumID() << "\n";
+    }
+
+    // 3.5 ذخیره Albums
+    for (const auto& al : AlbumRepository::getInstance().getAll()) {
+        outFile << "ALBUM|" << al.getAlbumID() << "|" << al.getName() << "|"
+                << al.getArtistID() << "\n";
     }
 
     // 4. ذخیره Playlists
@@ -113,13 +120,21 @@ void DataManager::loadAll() {
             Song s(name, stoi(year), genre, stoi(aId), stoi(albId), stoi(id));
             SongRepository::getInstance().save(s);
         }
+        else if (tag == "ALBUM") {
+            string id, name, artistId;
+            getline(ss, id, '|'); getline(ss, name, '|'); getline(ss, artistId, '|');
+
+            // ترتیب سازنده Album: name, ArtistID, albumID
+            Album al(name, stoi(artistId), stoi(id));
+            AlbumRepository::getInstance().save(al);
+        }
         else if (tag == "PLAYLIST") {
             string id, name, lId, sIds;
             getline(ss, id, '|'); getline(ss, name, '|'); getline(ss, lId, '|'); getline(ss, sIds, '|');
 
             // ترتیب سازنده Playlist: name, ListenerID, listID
             Playlist p(name, stoi(lId), stoi(id));
-            p.setSongIDs(splitVector(sIds)); // فرض بر وجود متد setSongIDs
+            p.setSongIDs(splitVector(sIds));
             PlaylistRepository::getInstance().save(p);
         }
         else if (tag == "IDS") {
