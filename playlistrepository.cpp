@@ -44,12 +44,12 @@ optional<Playlist> PlaylistRepository:: search(int id) const
 }
 
 
-void PlaylistRepository::insertSong(int playlistID, int songID)
+bool PlaylistRepository::insertSong(int playlistID, int songID)
 {
     auto song = SongRepository::getInstance().search(songID);
     if (!song.has_value())
     {
-        return;
+        return 0;
     }
 
 
@@ -58,21 +58,23 @@ void PlaylistRepository::insertSong(int playlistID, int songID)
         if (pl.getListID() == playlistID)
         {
             pl.addSong(songID);
-            return;
+            return 1;
         }
     }
+    return 0;
 }
 
-void PlaylistRepository::removeSong(int playlistID, int songID)
+bool PlaylistRepository::removeSong(int playlistID, int songID)
 {
     for (auto& pl : playlists)
     {
         if (pl.getListID() == playlistID)
         {
             pl.removeSong(songID);
-            return;
+            return 1;
         }
     }
+    return 0;
 }
 
 vector<Playlist> PlaylistRepository::Playlists(int listenerID) const

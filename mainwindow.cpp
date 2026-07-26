@@ -48,6 +48,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     createPlaylistsPage();
     createPlaylistSongsPage();
 
+    // pages for artist browser (newly added)
+    createArtistBrowserPage();
+    createArtistAlbumsPage();
+    createArtistSongsPage();
+
     stackedWidget->addWidget(welcomePage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
@@ -57,6 +62,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     stackedWidget->addWidget(listenerDashboardPage);
     stackedWidget->addWidget(playlistsPage);
     stackedWidget->addWidget(playlistSongsPage);
+
+    // add newly created pages to stacked widget
+    stackedWidget->addWidget(artistBrowserPage);
+    stackedWidget->addWidget(artistAlbumsPage);
+    stackedWidget->addWidget(artistSongsPage);
 
     showWelcomePage();
 }
@@ -324,6 +334,7 @@ void MainWindow::createListenerDashboardPage() {
 
     connect(btnLogoutListener, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
     connect(btnMyPlaylists, &QPushButton::clicked, this, &MainWindow::showPlaylistsPage);
+    connect(btnBrowseArtists, &QPushButton::clicked, this, &MainWindow::showArtistBrowserPage);
 }
 
 
@@ -705,6 +716,10 @@ QPushButton* MainWindow::createPlaylistSongItemButton(const QString &songTitle, 
         "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
         "QPushButton:hover { background-color: #f2f2f2; }"
         );
+    // Listeners can click songs to see details dialog
+    connect(btnSong, &QPushButton::clicked, this, [this, songID]() {
+        handleListenerSongClicked(songID);
+    });
     return btnSong;
 }
 
@@ -1272,4 +1287,434 @@ void MainWindow::handleAddSong() {
             QMessageBox::warning(this, "Error", "Failed to add song.");
         }
     }
+}
+
+
+// ============================================================================
+// --- Artist Browser & Navigation Implementations (NEW SECTIONS) ------------
+// ============================================================================
+
+// --- 1. Artist Browser Page Creation ---
+void MainWindow::createArtistBrowserPage() {
+    artistBrowserPage = new QWidget();
+    QVBoxLayout *mainLayout = new QVBoxLayout(artistBrowserPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    QLabel *lblTitle = new QLabel("Browse Artists", artistBrowserPage);
+    lblTitle->setAlignment(Qt::AlignCenter);
+    lblTitle->setStyleSheet("font-size: 20px; font-weight: bold;");
+
+    artistBrowserContainer = new QWidget(artistBrowserPage);
+    artistBrowserLayout = new QVBoxLayout(artistBrowserContainer);
+    artistBrowserLayout->setSpacing(10);
+    artistBrowserLayout->setContentsMargins(0, 0, 0, 0);
+
+    QScrollArea *scrollArea = new QScrollArea(artistBrowserPage);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setWidget(artistBrowserContainer);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    btnBackFromArtistBrowser = new QPushButton("Back", artistBrowserPage);
+    btnBackFromArtistBrowser->setMinimumHeight(40);
+    btnBackFromArtistBrowser->setMinimumWidth(100);
+    bottomLayout->addWidget(btnBackFromArtistBrowser);
+    bottomLayout->addStretch();
+
+    mainLayout->addWidget(lblTitle);
+    mainLayout->addWidget(scrollArea);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromArtistBrowser, &QPushButton::clicked, this, &MainWindow::showListenerDashboardPage);
+}
+
+void MainWindow::showArtistBrowserPage() {
+    // Clear layout
+    QLayoutItem *item;
+    while ((item = artistBrowserLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+
+    auto artistsOpt = Controller::getInstance().showAllArtist();
+    if (artistsOpt.has_value()) {
+        const auto &artists = artistsOpt.value();
+        if (artists.empty()) {
+            QLabel *lblEmpty = new QLabel("No artists found.", artistBrowserPage);
+            lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+            artistBrowserLayout->addWidget(lblEmpty);
+        } else {
+            for (const Artist &artist : artists) {
+                QPushButton *btnArtist = new QPushButton(QString::fromStdString(artist.getFullName()), artistBrowserPage);
+                btnArtist->setMinimumHeight(45);
+                btnArtist->setStyleSheet(
+                    "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+                    "QPushButton:hover { background-color: #f2f2f2; }"
+                    );
+
+                int artistID = artist.getID();
+                QString artistName = QString::fromStdString(artist.getFullName());
+                connect(btnArtist, &QPushButton::clicked, this, [this, artistID, artistName]() {
+                    showArtistAlbumsPage(artistID, artistName);
+                });
+
+                artistBrowserLayout->addWidget(btnArtist);
+            }
+        }
+    } else {
+        QLabel *lblError = new QLabel("Failed to load artists.", artistBrowserPage);
+        lblError->setStyleSheet("color: red;");
+        artistBrowserLayout->addWidget(lblError);
+    }
+
+    artistBrowserLayout->addStretch();
+    stackedWidget->setCurrentWidget(artistBrowserPage);
+}
+
+
+// --- 2. Artist Albums Page Creation ---
+void MainWindow::createArtistAlbumsPage() {
+    artistAlbumsPage = new QWidget();
+    QVBoxLayout *mainLayout = new QVBoxLayout(artistAlbumsPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    lblArtistAlbumsTitle = new QLabel("Artist's Albums", artistAlbumsPage);
+    lblArtistAlbumsTitle->setAlignment(Qt::AlignCenter);
+    lblArtistAlbumsTitle->setStyleSheet("font-size: 20px; font-weight: bold;");
+
+    artistAlbumsContainer = new QWidget(artistAlbumsPage);
+    artistAlbumsLayout = new QVBoxLayout(artistAlbumsContainer);
+    artistAlbumsLayout->setSpacing(10);
+    artistAlbumsLayout->setContentsMargins(0, 0, 0, 0);
+
+    QScrollArea *scrollArea = new QScrollArea(artistAlbumsPage);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setWidget(artistAlbumsContainer);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    btnBackFromArtistAlbums = new QPushButton("Back", artistAlbumsPage);
+    btnBackFromArtistAlbums->setMinimumHeight(40);
+    btnBackFromArtistAlbums->setMinimumWidth(100);
+    bottomLayout->addWidget(btnBackFromArtistAlbums);
+    bottomLayout->addStretch();
+
+    mainLayout->addWidget(lblArtistAlbumsTitle);
+    mainLayout->addWidget(scrollArea);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromArtistAlbums, &QPushButton::clicked, this, &MainWindow::showArtistBrowserPage);
+}
+
+void MainWindow::showArtistAlbumsPage(int artistID, const QString &artistName) {
+    currentSelectedArtistId = artistID;
+    currentSelectedArtistName = artistName;
+
+    lblArtistAlbumsTitle->setText(artistName + "'s Collection");
+
+    // Clear layout
+    QLayoutItem *item;
+    while ((item = artistAlbumsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+
+    // 1. First button must be "Singles"
+    QPushButton *btnSinglesAlbum = new QPushButton("Singles", artistAlbumsPage);
+    btnSinglesAlbum->setMinimumHeight(45);
+    btnSinglesAlbum->setStyleSheet(
+        "QPushButton { text-align: left; padding-left: 12px; font-weight: bold; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: #f8fafc; }"
+        "QPushButton:hover { background-color: #f1f5f9; }"
+        );
+    connect(btnSinglesAlbum, &QPushButton::clicked, this, [this, artistID]() {
+        showArtistSongsPage(-1, "Singles", artistID);
+    });
+    artistAlbumsLayout->addWidget(btnSinglesAlbum);
+
+    // 2. Fetch and display normal albums
+    auto albumsOpt = Controller::getInstance().AlbumsOfArtist(artistID);
+    if (albumsOpt.has_value()) {
+        const auto &albums = albumsOpt.value();
+        for (const Album &album : albums) {
+            QPushButton *btnAlbum = new QPushButton(QString::fromStdString(album.getName()), artistAlbumsPage);
+            btnAlbum->setMinimumHeight(45);
+            btnAlbum->setStyleSheet(
+                "QPushButton { text-align: left; padding-left: 12px; font-size: 15px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+                "QPushButton:hover { background-color: #f2f2f2; }"
+                );
+
+            int albumID = album.getAlbumID();
+            QString albumName = QString::fromStdString(album.getName());
+            connect(btnAlbum, &QPushButton::clicked, this, [this, albumID, albumName, artistID]() {
+                showArtistSongsPage(albumID, albumName, artistID);
+            });
+
+            artistAlbumsLayout->addWidget(btnAlbum);
+        }
+    }
+
+    artistAlbumsLayout->addStretch();
+    stackedWidget->setCurrentWidget(artistAlbumsPage);
+}
+
+
+// --- 3. Artist Songs Page Creation ---
+void MainWindow::createArtistSongsPage() {
+    artistSongsPage = new QWidget();
+    QVBoxLayout *mainLayout = new QVBoxLayout(artistSongsPage);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    lblArtistSongsTitle = new QLabel("Songs", artistSongsPage);
+    lblArtistSongsTitle->setAlignment(Qt::AlignLeft);
+    lblArtistSongsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
+
+    artistSongsContainer = new QWidget(artistSongsPage);
+    artistSongsLayout = new QVBoxLayout(artistSongsContainer);
+    artistSongsLayout->setSpacing(10);
+    artistSongsLayout->setContentsMargins(0, 0, 0, 0);
+
+    QScrollArea *scrollArea = new QScrollArea(artistSongsPage);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setWidget(artistSongsContainer);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    btnBackFromArtistSongs = new QPushButton("Back", artistSongsPage);
+    btnBackFromArtistSongs->setMinimumHeight(40);
+    btnBackFromArtistSongs->setMinimumWidth(100);
+    bottomLayout->addWidget(btnBackFromArtistSongs);
+    bottomLayout->addStretch();
+
+    mainLayout->addWidget(lblArtistSongsTitle);
+    mainLayout->addWidget(scrollArea);
+    mainLayout->addLayout(bottomLayout);
+
+    connect(btnBackFromArtistSongs, &QPushButton::clicked, this, [this]() {
+        showArtistAlbumsPage(currentSelectedArtistId, currentSelectedArtistName);
+    });
+}
+
+void MainWindow::showArtistSongsPage(int albumID, const QString &albumTitle, int artistID) {
+    currentSelectedAlbumId = albumID;
+    currentSelectedAlbumTitle = albumTitle;
+
+    lblArtistSongsTitle->setText(albumTitle);
+
+    // Clear layout
+    QLayoutItem *item;
+    while ((item = artistSongsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
+    }
+
+    std::optional<std::vector<Song>> songsOpt;
+    if (albumID == -1) {
+        // Fetch Singles
+        songsOpt = Controller::getInstance().artistSingleSong(artistID);
+    } else {
+        // Fetch Album songs
+        songsOpt = Controller::getInstance().showSongsInAlbum(albumID);
+    }
+
+    if (songsOpt.has_value()) {
+        const auto &songs = songsOpt.value();
+        if (songs.empty()) {
+            QLabel *lblEmpty = new QLabel("No songs found in this selection.", artistSongsPage);
+            lblEmpty->setStyleSheet("color: gray; font-style: italic;");
+            artistSongsLayout->addWidget(lblEmpty);
+        } else {
+            for (const Song &song : songs) {
+                QPushButton *btnSong = new QPushButton(QString::fromStdString(song.getName()), artistSongsPage);
+                btnSong->setMinimumHeight(45);
+                btnSong->setStyleSheet(
+                    "QPushButton { text-align: left; padding-left: 12px; font-size: 14px; border: 1px solid gray; border-radius: 8px; background-color: white; }"
+                    "QPushButton:hover { background-color: #f2f2f2; }"
+                    );
+
+                int songID = song.getSongID();
+                connect(btnSong, &QPushButton::clicked, this, [this, songID]() {
+                    handleListenerSongClicked(songID);
+                });
+
+                artistSongsLayout->addWidget(btnSong);
+            }
+        }
+    } else {
+        QLabel *lblError = new QLabel("Failed to retrieve songs.", artistSongsPage);
+        lblError->setStyleSheet("color: red;");
+        artistSongsLayout->addWidget(lblError);
+    }
+
+    artistSongsLayout->addStretch();
+    stackedWidget->setCurrentWidget(artistSongsPage);
+}
+
+
+// --- 4. Listener Detailed Song Pop-up / Dialog Logic ---
+// --- 4. Listener Detailed Song Pop-up / Dialog Logic ---
+void MainWindow::handleListenerSongClicked(int songID) {
+    auto songOpt = Controller::getInstance().getSong(songID);
+    if (!songOpt.has_value()) return;
+
+    Song song = songOpt.value();
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("Song Information");
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    layout->addWidget(new QLabel("Title: " + QString::fromStdString(song.getName())));
+    layout->addWidget(new QLabel("Artist: " + currentSelectedArtistName));
+    layout->addWidget(new QLabel("Year: " + QString::number(song.getReleaseYear())));
+    layout->addWidget(new QLabel("Genre: " + QString::fromStdString(song.getGenre())));
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+
+    // LIKE BUTTON STATE SETUP
+    QPushButton *btnLike = new QPushButton("Like", &dialog);
+    btnLike->setCheckable(true);
+    bool initialLiked = Controller::getInstance().islikeSong(songID);
+    btnLike->setChecked(initialLiked);
+
+    auto updateLikeStyle = [](QPushButton* btn) {
+        if (btn->isChecked()) {
+            btn->setText("Liked ❤️");
+            btn->setStyleSheet("background-color: #fecdd3; color: #e11d48; font-weight: bold;");
+        } else {
+            btn->setText("Like ♡");
+            btn->setStyleSheet("");
+        }
+    };
+    updateLikeStyle(btnLike);
+
+    QPushButton *btnPlaylist = new QPushButton("Add to Playlist", &dialog);
+    QPushButton *btnClose = new QPushButton("Close", &dialog);
+
+    btnLayout->addWidget(btnLike);
+    btnLayout->addWidget(btnPlaylist);
+    btnLayout->addWidget(btnClose);
+    layout->addLayout(btnLayout);
+
+    // Live feedback on click
+    connect(btnLike, &QPushButton::clicked, this, [this, songID, btnLike, updateLikeStyle]() {
+        bool newState = btnLike->isChecked();
+        if (Controller::getInstance().likeSong(songID, newState)) {
+            updateLikeStyle(btnLike);
+        } else {
+            // Revert state if operation fails
+            btnLike->setChecked(!newState);
+            updateLikeStyle(btnLike);
+            QMessageBox::warning(this, "Error", "Could not complete the request.");
+        }
+    });
+
+    // PLAYLIST COMBO LOGIC
+    connect(btnPlaylist, &QPushButton::clicked, this, [this, songID]() {
+        auto playlistsOpt = Controller::getInstance().myPlaylist();
+        if (!playlistsOpt.has_value()) {
+            QMessageBox::warning(this, "Error", "No playlists found.");
+            return;
+        }
+
+        const auto &playlists = playlistsOpt.value();
+
+        QDialog playlistDialog(this);
+        playlistDialog.setWindowTitle("Select Playlist");
+        QVBoxLayout *pLayout = new QVBoxLayout(&playlistDialog);
+
+        pLayout->addWidget(new QLabel("Choose a playlist for this song:"));
+
+        QComboBox *combo = new QComboBox(&playlistDialog);
+        combo->addItem("None (No Playlist)", -1); // Default initial choice
+
+        int currentPlaylistAssignedId = -1;
+
+        // Find which normal playlist currently contains the song
+        for (const Playlist &p : playlists) {
+            combo->addItem(QString::fromStdString(p.getName()), p.getListID());
+
+            // Check if song is in this playlist
+            auto songsInPOpt = Controller::getInstance().showSongsInPlaylist(p.getListID());
+            if (songsInPOpt.has_value()) {
+                for (const Song &s : songsInPOpt.value()) {
+                    if (s.getSongID() == songID) {
+                        currentPlaylistAssignedId = p.getListID();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Set current selection to active playlist index if found
+        if (currentPlaylistAssignedId != -1) {
+            int targetIdx = combo->findData(currentPlaylistAssignedId);
+            if (targetIdx != -1) {
+                combo->setCurrentIndex(targetIdx);
+            }
+        }
+
+        QDialogButtonBox *box =
+            new QDialogButtonBox(
+                QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+                &playlistDialog
+                );
+
+        pLayout->addWidget(combo);
+        pLayout->addWidget(box);
+
+        connect(box, &QDialogButtonBox::accepted,
+                &playlistDialog, &QDialog::accept);
+        connect(box, &QDialogButtonBox::rejected,
+                &playlistDialog, &QDialog::reject);
+
+        if (playlistDialog.exec() == QDialog::Accepted) {
+            int selectedPlaylistId = combo->currentData().toInt();
+
+            // If selected playlist is the same, do nothing
+            if (selectedPlaylistId == currentPlaylistAssignedId) {
+                return;
+            }
+
+            // Step 1: Remove from old playlist if it existed
+            if (currentPlaylistAssignedId != -1) {
+                Controller::getInstance().removeSongFromPlaylist(
+                    songID,
+                    currentPlaylistAssignedId
+                    );
+            }
+
+            // Step 2: Add to new playlist if not "None"
+            if (selectedPlaylistId != -1) {
+                if (Controller::getInstance().insertSongtoPlaylist(
+                        songID,
+                        selectedPlaylistId
+                        )) {
+                    QMessageBox::information(
+                        this,
+                        "Success",
+                        "Song added to playlist."
+                        );
+                } else {
+                    QMessageBox::warning(
+                        this,
+                        "Error",
+                        "Failed to add song to playlist."
+                        );
+                }
+            } else {
+                QMessageBox::information(
+                    this,
+                    "Success",
+                    "Song removed from all normal playlists."
+                    );
+            }
+        }
+    });
+
+    connect(btnClose, &QPushButton::clicked,
+            &dialog, &QDialog::accept);
+
+    dialog.exec();
 }

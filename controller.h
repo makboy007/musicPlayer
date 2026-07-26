@@ -57,6 +57,20 @@ public:
     bool editPlaylist(int PlaylistID ,string newName);
    optional<vector<Song>> showSongsInPlaylist(int PlaylistID);
     optional<vector<Song>> myLikeSong();
+
+    optional<vector<Artist>> showAllArtist();
+    optional<vector<Album>> AlbumsOfArtist(int ArtistID);
+    optional<vector<Song>>  artistSingleSong(int artistID);
+    bool likeSong(int songID,bool like);
+    bool insertSongtoPlaylist(int songID,int PlaylistID);
+    bool removeSongFromPlaylist(int songID,int PlaylistID);
+    bool islikeSong(int songID);
 };
 
 #endif
+
+
+
+
+
+

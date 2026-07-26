@@ -127,7 +127,7 @@ bool Controller:: removeSong(int songID)
 
 optional<vector<Song>> Controller:: showSongsInAlbum(int albumID)
 {
-    if(isCurrentArtist&&currentUserId != -1)
+    if(currentUserId != -1)
     {
         return SongRepository::getInstance().getByAlbum(albumID);
     }
@@ -295,4 +295,79 @@ optional<vector<Song>> Controller:: myLikeSong()
         return SongRepository::getInstance().getByLikedSongs(currentUserId);
     }
     return nullopt;
+}
+
+optional<vector<Artist>> Controller:: showAllArtist()
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return ArtistRepository::getInstance().getAll();
+    }
+    return nullopt;
+}
+
+optional<vector<Album>> Controller::AlbumsOfArtist(int ArtistID)
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return AlbumRepository::getInstance().Albums(ArtistID);
+    }
+    return nullopt;
+}
+
+
+
+bool Controller:: likeSong(int songID,bool like)
+{
+    if (currentUserId != -1 && !isCurrentArtist)
+    {
+        ListenerRepository::getInstance().updateLiked(currentUserId,songID, like);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+bool Controller:: insertSongtoPlaylist(int songID,int PlaylistID)
+{
+    if (currentUserId != -1 && !isCurrentArtist)
+    {
+        if (PlaylistRepository::getInstance().insertSong(PlaylistID, songID))
+        {
+            DataManager::saveAll();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Controller:: removeSongFromPlaylist(int songID,int PlaylistID)
+{
+    if (currentUserId != -1 && !isCurrentArtist)
+    {
+        if (PlaylistRepository::getInstance().removeSong(PlaylistID, songID))
+        {
+            DataManager::saveAll();
+            return true;
+        }
+    }
+    return false;
+}
+
+optional<vector<Song>> Controller:: artistSingleSong(int artistID)
+{
+    if(!isCurrentArtist&&currentUserId != -1)
+    {
+        return SongRepository::getInstance().singleSongs(artistID);
+    }
+    return nullopt;
+}
+
+bool Controller:: islikeSong(int songID)
+{
+    if(ListenerRepository::getInstance().isLiked(currentUserId,songID))
+    {
+        return 1;
+    }
+    return 0;
 }

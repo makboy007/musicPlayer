@@ -101,7 +101,7 @@ vector<Song> SongRepository:: getByPlaylist(int playlistID)const
 
     for (const auto& song : songs)
     {
-        if (std::find(songIDs.begin(), songIDs.end(), song.getAlbumID()) != songIDs.end())
+        if (std::find(songIDs.begin(), songIDs.end(), song.getSongID()) != songIDs.end())
         {
             result.push_back(song);
         }
