@@ -65,6 +65,9 @@ public:
     bool insertSongtoPlaylist(int songID,int PlaylistID);
     bool removeSongFromPlaylist(int songID,int PlaylistID);
     bool islikeSong(int songID);
+
+    bool updateListenerProfile(const string& fullName,const string& username,const string& biography,const string& password);
+    bool removeListener();
 };
 
 #endif

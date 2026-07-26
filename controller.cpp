@@ -371,3 +371,52 @@ bool Controller:: islikeSong(int songID)
     }
     return 0;
 }
+
+
+bool Controller::updateListenerProfile(const string& fullName, const string& username, const string& biography, const string& password)
+{
+    if (fullName.empty() || username.empty() || password.empty()) {
+        return false;
+    }
+
+    const auto& listeners = ListenerRepository::getInstance().getAll();
+    for (const auto& listener : listeners) {
+        if (listener.getUserName() == username &&
+            listener.getID() != currentUserId) {
+            return false;
+        }
+    }
+
+    Listener* currentAccount = getCurrentListener();
+    if (currentAccount == nullptr) {
+        return false;
+    }
+
+    currentAccount->setFullName(fullName);
+    currentAccount->setUserName(username);
+    currentAccount->setBiography(biography);
+    currentAccount->setPassword(password);
+
+    DataManager::saveAll();
+    return true;
+}
+
+bool Controller:: removeListener()
+{
+    if(currentUserId!=-1&&!isCurrentArtist)
+    {
+        ListenerRepository::getInstance().remove(currentUserId);
+        DataManager::saveAll();
+        return true;
+    }
+    return false;
+}
+
+
+
+
+
+
+
+
+

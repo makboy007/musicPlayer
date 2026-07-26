@@ -43,6 +43,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     createArtistProfilePage();
     createCollectionPage();
     createListenerDashboardPage();
+    createListenerProfilePage();
 
     // pages for listener playlists
     createPlaylistsPage();
@@ -60,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentAlbumId(-1
     stackedWidget->addWidget(artistProfilePage);
     stackedWidget->addWidget(collectionPage);
     stackedWidget->addWidget(listenerDashboardPage);
+    stackedWidget->addWidget(listenerProfilePage);
     stackedWidget->addWidget(playlistsPage);
     stackedWidget->addWidget(playlistSongsPage);
 
@@ -335,6 +337,48 @@ void MainWindow::createListenerDashboardPage() {
     connect(btnLogoutListener, &QPushButton::clicked, this, &MainWindow::showWelcomePage);
     connect(btnMyPlaylists, &QPushButton::clicked, this, &MainWindow::showPlaylistsPage);
     connect(btnBrowseArtists, &QPushButton::clicked, this, &MainWindow::showArtistBrowserPage);
+    connect(btnListenerName, &QPushButton::clicked,this, &MainWindow::showListenerProfilePage);
+}
+
+void MainWindow::createListenerProfilePage()
+{
+    listenerProfilePage = new QWidget;
+    QVBoxLayout *mainLayout = new QVBoxLayout(listenerProfilePage);
+
+    QLabel *title = new QLabel("Listener Profile");
+    title->setAlignment(Qt::AlignCenter);
+    title->setStyleSheet("font-size: 22px; font-weight: bold; margin-bottom: 15px;");
+
+    QFormLayout *formLayout = new QFormLayout;
+
+    listenerProfileFullNameEdit = new QLineEdit;
+    listenerProfileUsernameEdit = new QLineEdit;
+    listenerProfileBiographyEdit = new QTextEdit;
+    listenerProfilePasswordEdit = new QLineEdit;
+
+    listenerProfileBiographyEdit->setPlaceholderText("Enter biography...");
+    listenerProfileBiographyEdit->setFixedHeight(100);
+
+    listenerProfilePasswordEdit->setEchoMode(QLineEdit::Normal); // طبق ترجیح فعلی پروژه
+
+    formLayout->addRow("Full Name:", listenerProfileFullNameEdit);
+    formLayout->addRow("Username:", listenerProfileUsernameEdit);
+    formLayout->addRow("Biography:", listenerProfileBiographyEdit);
+    formLayout->addRow("Password:", listenerProfilePasswordEdit);
+
+    QPushButton *saveBtn = new QPushButton("Save Changes");
+    QPushButton *deleteBtn = new QPushButton("Delete Account");
+    QPushButton *backBtn = new QPushButton("Back");
+
+    connect(saveBtn, &QPushButton::clicked, this, &MainWindow::handleEditListenerProfile);
+    connect(deleteBtn, &QPushButton::clicked, this, &MainWindow::handleDeleteListenerProfile);
+    connect(backBtn, &QPushButton::clicked, this, &MainWindow::showListenerDashboardPage);
+
+    mainLayout->addWidget(title);
+    mainLayout->addLayout(formLayout);
+    mainLayout->addWidget(saveBtn);
+    mainLayout->addWidget(deleteBtn);
+    mainLayout->addWidget(backBtn);
 }
 
 
@@ -628,6 +672,24 @@ void MainWindow::showListenerDashboardPage() {
     }
     stackedWidget->setCurrentWidget(listenerDashboardPage);
 }
+
+void MainWindow::showListenerProfilePage()
+{
+    Listener *currentListener = Controller::getInstance().getCurrentListener();
+    if (currentListener == nullptr) {
+        QMessageBox::warning(this, "Error", "No listener is currently logged in.");
+        return;
+    }
+
+    listenerProfileFullNameEdit->setText(QString::fromStdString(currentListener->getFullName()));
+    listenerProfileUsernameEdit->setText(QString::fromStdString(currentListener->getUserName()));
+    listenerProfileBiographyEdit->setPlainText(QString::fromStdString(currentListener->getBiography()));
+    listenerProfilePasswordEdit->setText(QString::fromStdString(currentListener->getPassword()));
+
+    stackedWidget->setCurrentWidget(listenerProfilePage);
+}
+
+
 
 void MainWindow::showArtistProfilePage() {
     Artist* currentArtist = Controller::getInstance().getCurrentAccount();
@@ -1083,6 +1145,69 @@ void MainWindow::handleEditProfile()
     }
 }
 
+void MainWindow::handleEditListenerProfile()
+{
+    Listener *currentListener = Controller::getInstance().getCurrentListener();
+    if (currentListener == nullptr) {
+        QMessageBox::warning(this, "Error", "No listener is currently logged in.");
+        return;
+    }
+
+    QString fullName = listenerProfileFullNameEdit->text().trimmed();
+    QString username = listenerProfileUsernameEdit->text().trimmed();
+    QString biography = listenerProfileBiographyEdit->toPlainText().trimmed();
+    QString password = listenerProfilePasswordEdit->text();
+
+    if (fullName.isEmpty() || username.isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Input Error", "Full name, username, and password are required.");
+        return;
+    }
+
+    bool ok = Controller::getInstance().updateListenerProfile(
+        fullName.toStdString(),
+        username.toStdString(),
+        biography.toStdString(),
+        password.toStdString()
+        );
+
+    if (ok) {
+        QMessageBox::information(this, "Success", "Listener profile updated successfully.");
+        showListenerDashboardPage();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to update listener profile.");
+    }
+}
+
+
+void MainWindow::handleDeleteListenerProfile()
+{
+    Listener *currentListener = Controller::getInstance().getCurrentListener();
+    if (currentListener == nullptr) {
+        QMessageBox::warning(this, "Error", "No listener is currently logged in.");
+        return;
+    }
+
+    auto reply = QMessageBox::question(
+        this,
+        "Delete Profile",
+        "Are you sure you want to delete your listener profile?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply != QMessageBox::Yes)
+        return;
+
+   bool ok = Controller::getInstance().removeListener();
+
+    if (ok) {
+        QMessageBox::information(this, "Deleted", "Listener profile deleted successfully.");
+        txtLoginUser->clear();
+        txtLoginPass->clear();
+        showWelcomePage();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to delete listener profile.");
+    }
+}
 
 
 // --- Other Handlers ---

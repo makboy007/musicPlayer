@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <optional>
 #include <vector>
-
+#include <QTextEdit>
 class QWidget;
 class QStackedWidget;
 class QRadioButton;
@@ -41,7 +41,10 @@ private:
     void createListenerDashboardPage();
     void createPlaylistsPage();
     void createPlaylistSongsPage();
-
+    void createListenerProfilePage();
+    void showListenerProfilePage();
+    void handleEditListenerProfile();
+    void handleDeleteListenerProfile();
     // --- Artist Browser pages ---
     void createArtistBrowserPage();
     void createArtistAlbumsPage();
@@ -204,6 +207,17 @@ private:
     QString currentSelectedArtistName;
     int currentSelectedAlbumId = -1;
     QString currentSelectedAlbumTitle;
+
+    QWidget *listenerProfilePage = nullptr;
+
+    QLineEdit *listenerProfileFullNameEdit = nullptr;
+    QLineEdit *listenerProfileUsernameEdit = nullptr;
+    QTextEdit *listenerProfileBiographyEdit=nullptr;
+    QLineEdit *listenerProfilePasswordEdit = nullptr;
+
+    QPushButton *btnEditListenerProfile = nullptr;
+    QPushButton *btnDeleteListenerProfile = nullptr;
+    QPushButton *btnBackFromListenerProfile = nullptr;
 };
 
 #endif // MAINWINDOW_H
